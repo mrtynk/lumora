@@ -1,0 +1,14 @@
+node_modules/
+.env
+dist/
+.vite/
+.DS_Store
+*.log
+
+game/Library/
+game/Temp/
+game/Obj/
+game/Build/
+game/Builds/
+game/Logs/
+game/UserSettings/
