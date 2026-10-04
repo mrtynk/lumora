@@ -3,7 +3,9 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEditorInternal;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public static class LumoraPrototypeSceneBuilder
 {
@@ -22,6 +24,7 @@ public static class LumoraPrototypeSceneBuilder
         EnsureFolder("Assets/Editor");
         EnsureFolder("Assets/Scenes");
         EnsureFolder("Assets/Materials");
+        EnsureFolder("Assets/UI");
 
         Scene scene = EditorSceneManager.NewScene(
             NewSceneSetup.EmptyScene,
@@ -40,7 +43,11 @@ public static class LumoraPrototypeSceneBuilder
         CreateGround(groundMaterial);
         GameObject player = CreatePlayer();
         GameEventSender eventSender = CreateGameManager();
-        CreatePuzzlePaper(puzzleMaterial, eventSender);
+        PuzzlePopupUI puzzlePopup = CreatePuzzlePopup(
+            eventSender,
+            player.GetComponent<PlayerController>()
+        );
+        CreatePuzzlePaper(puzzleMaterial, puzzlePopup);
         CreateOrConfigureMainCamera();
         CreateDirectionalLight();
 
@@ -105,7 +112,7 @@ public static class LumoraPrototypeSceneBuilder
         return eventSender;
     }
 
-    private static void CreatePuzzlePaper(Material material, GameEventSender eventSender)
+    private static void CreatePuzzlePaper(Material material, PuzzlePopupUI puzzlePopup)
     {
         GameObject puzzlePaper = GameObject.CreatePrimitive(PrimitiveType.Cube);
         puzzlePaper.name = "PuzzlePaper";
@@ -122,17 +129,176 @@ public static class LumoraPrototypeSceneBuilder
 
         PuzzleTrigger puzzleTrigger = puzzlePaper.AddComponent<PuzzleTrigger>();
         SerializedObject triggerObject = new SerializedObject(puzzleTrigger);
-        SetStringProperty(triggerObject, "childId", ChildId);
-        SetStringProperty(triggerObject, "eventType", "puzzle_started");
-        SetStringProperty(triggerObject, "region", "isikli_vadi");
-        SetStringProperty(triggerObject, "puzzleType", "hidden_object");
-        SetStringProperty(
-            triggerObject,
-            "value",
-            "Unity üzerinden puzzle kağıdı tetiklendi"
-        );
-        SetObjectProperty(triggerObject, "eventSender", eventSender);
+        SetObjectProperty(triggerObject, "puzzlePopup", puzzlePopup);
         triggerObject.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static PuzzlePopupUI CreatePuzzlePopup(
+        GameEventSender eventSender,
+        PlayerController playerController)
+    {
+        GameObject canvasObject = new GameObject(
+            "PuzzleCanvas",
+            typeof(RectTransform),
+            typeof(Canvas),
+            typeof(CanvasScaler),
+            typeof(GraphicRaycaster)
+        );
+
+        Canvas canvas = canvasObject.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+
+        CanvasScaler canvasScaler = canvasObject.GetComponent<CanvasScaler>();
+        canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        canvasScaler.referenceResolution = new Vector2(1920f, 1080f);
+        canvasScaler.matchWidthOrHeight = 0.5f;
+
+        GameObject panel = CreateUiObject("PuzzlePanel", canvasObject.transform);
+        RectTransform panelRect = panel.GetComponent<RectTransform>();
+        SetCenteredRect(panelRect, new Vector2(560f, 320f), Vector2.zero);
+        Image panelImage = panel.AddComponent<Image>();
+        panelImage.color = new Color(0.12f, 0.16f, 0.22f, 0.97f);
+
+        CreateText(
+            "Title",
+            panel.transform,
+            "Bulmaca",
+            34,
+            FontStyle.Bold,
+            new Vector2(480f, 50f),
+            new Vector2(0f, 95f)
+        );
+        CreateText(
+            "Description",
+            panel.transform,
+            "Bu bulmacayı tamamladın mı?",
+            24,
+            FontStyle.Normal,
+            new Vector2(480f, 60f),
+            new Vector2(0f, 35f)
+        );
+
+        Button successButton = CreateButton(
+            "SuccessButton",
+            panel.transform,
+            "Başarılı",
+            new Vector2(-165f, -80f),
+            new Color(0.25f, 0.65f, 0.35f)
+        );
+        Button failureButton = CreateButton(
+            "FailureButton",
+            panel.transform,
+            "Başarısız",
+            new Vector2(0f, -80f),
+            new Color(0.78f, 0.28f, 0.25f)
+        );
+        Button closeButton = CreateButton(
+            "CloseButton",
+            panel.transform,
+            "Kapat",
+            new Vector2(165f, -80f),
+            new Color(0.38f, 0.43f, 0.5f)
+        );
+
+        PuzzlePopupUI popup = canvasObject.AddComponent<PuzzlePopupUI>();
+        SerializedObject popupObject = new SerializedObject(popup);
+        SetStringProperty(popupObject, "childId", ChildId);
+        SetStringProperty(popupObject, "region", "isikli_vadi");
+        SetStringProperty(popupObject, "puzzleType", "hidden_object");
+        SetObjectProperty(popupObject, "eventSender", eventSender);
+        SetObjectProperty(popupObject, "playerController", playerController);
+        SetObjectProperty(popupObject, "panelRoot", panel);
+        SetObjectProperty(popupObject, "successButton", successButton);
+        SetObjectProperty(popupObject, "failureButton", failureButton);
+        SetObjectProperty(popupObject, "closeButton", closeButton);
+        popupObject.ApplyModifiedPropertiesWithoutUndo();
+
+        panel.SetActive(false);
+        CreateEventSystem();
+        return popup;
+    }
+
+    private static GameObject CreateUiObject(string name, Transform parent)
+    {
+        GameObject uiObject = new GameObject(name, typeof(RectTransform));
+        uiObject.transform.SetParent(parent, false);
+        return uiObject;
+    }
+
+    private static Text CreateText(
+        string name,
+        Transform parent,
+        string content,
+        int fontSize,
+        FontStyle fontStyle,
+        Vector2 size,
+        Vector2 position)
+    {
+        GameObject textObject = CreateUiObject(name, parent);
+        SetCenteredRect(textObject.GetComponent<RectTransform>(), size, position);
+
+        Text text = textObject.AddComponent<Text>();
+        text.text = content;
+        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        text.fontSize = fontSize;
+        text.fontStyle = fontStyle;
+        text.alignment = TextAnchor.MiddleCenter;
+        text.color = Color.white;
+        return text;
+    }
+
+    private static Button CreateButton(
+        string name,
+        Transform parent,
+        string label,
+        Vector2 position,
+        Color color)
+    {
+        GameObject buttonObject = CreateUiObject(name, parent);
+        SetCenteredRect(
+            buttonObject.GetComponent<RectTransform>(),
+            new Vector2(145f, 58f),
+            position
+        );
+
+        Image image = buttonObject.AddComponent<Image>();
+        image.color = color;
+        Button button = buttonObject.AddComponent<Button>();
+        button.targetGraphic = image;
+
+        Text buttonText = CreateText(
+            "Text",
+            buttonObject.transform,
+            label,
+            21,
+            FontStyle.Bold,
+            new Vector2(145f, 58f),
+            Vector2.zero
+        );
+        buttonText.raycastTarget = false;
+        return button;
+    }
+
+    private static void SetCenteredRect(
+        RectTransform rectTransform,
+        Vector2 size,
+        Vector2 position)
+    {
+        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        rectTransform.sizeDelta = size;
+        rectTransform.anchoredPosition = position;
+    }
+
+    private static void CreateEventSystem()
+    {
+        GameObject eventSystemObject = new GameObject(
+            "EventSystem",
+            typeof(EventSystem),
+            typeof(StandaloneInputModule)
+        );
+        eventSystemObject.transform.position = Vector3.zero;
     }
 
     private static void CreateOrConfigureMainCamera()

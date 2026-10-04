@@ -3,18 +3,10 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class PuzzleTrigger : MonoBehaviour
 {
-    [Header("Event Bilgileri")]
-    [SerializeField] private string childId = "demo-child-001";
-    [SerializeField] private string eventType = "puzzle_started";
-    [SerializeField] private string region = "isikli_vadi";
-    [SerializeField] private string puzzleType = "hidden_object";
-    [SerializeField] private string value = "Unity üzerinden puzzle kağıdı tetiklendi";
-
     [Header("Bağlantılar")]
-    [SerializeField] private GameEventSender eventSender;
+    [SerializeField] private PuzzlePopupUI puzzlePopup;
 
     private bool playerIsNearby;
-    private bool eventSent;
 
     private void Reset()
     {
@@ -23,16 +15,15 @@ public class PuzzleTrigger : MonoBehaviour
 
     private void Update()
     {
-        if (playerIsNearby && !eventSent && Input.GetKeyDown(KeyCode.E))
+        if (playerIsNearby && Input.GetKeyDown(KeyCode.E))
         {
-            if (eventSender == null)
+            if (puzzlePopup == null)
             {
-                Debug.LogError("PuzzleTrigger: GameEventSender bağlantısı yapılmamış.");
+                Debug.LogError("PuzzleTrigger: PuzzlePopupUI bağlantısı yapılmamış.");
                 return;
             }
 
-            eventSender.SendEvent(childId, eventType, region, puzzleType, value);
-            eventSent = true;
+            puzzlePopup.OpenPopup();
         }
     }
 
