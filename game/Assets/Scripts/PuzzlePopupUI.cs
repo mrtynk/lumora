@@ -4,29 +4,48 @@ using UnityEngine.UI;
 
 public class PuzzlePopupUI : MonoBehaviour
 {
+    private const string HiddenObjectType = "hidden_object";
+    private const string MemoryMatchType = "memory_match";
+
     [Header("Event Bilgileri")]
     [SerializeField] private string childId = "demo-child-001";
     [SerializeField] private string region = "isikli_vadi";
-    [SerializeField] private string puzzleType = "hidden_object";
 
-    [Header("Bağlantılar")]
+    [Header("Genel Bağlantılar")]
     [SerializeField] private GameEventSender eventSender;
     [SerializeField] private PlayerController playerController;
-    [SerializeField] private GameObject panelRoot;
+    [SerializeField] private GameObject popupRoot;
+
+    [Header("Panel Bağlantıları")]
+    [SerializeField] private GameObject selectionPanel;
+    [SerializeField] private GameObject hiddenObjectPanel;
+    [SerializeField] private GameObject memoryMatchPanel;
     [SerializeField] private HiddenObjectPuzzleUI hiddenObjectPuzzle;
-    [SerializeField] private Button closeButton;
+    [SerializeField] private MemoryMatchPuzzleUI memoryMatchPuzzle;
+
+    [Header("Buton Bağlantıları")]
+    [SerializeField] private Button startHiddenObjectButton;
+    [SerializeField] private Button startMemoryMatchButton;
+    [SerializeField] private Button closeSelectionButton;
+    [SerializeField] private Button closeHiddenObjectButton;
+    [SerializeField] private Button closeMemoryMatchButton;
 
     [Header("Koruma")]
     [SerializeField] private float actionCooldown = 0.35f;
 
+    private string activePuzzleType;
     private float nextAllowedActionTime;
     private bool isEnding;
 
-    public bool IsOpen => panelRoot != null && panelRoot.activeSelf;
+    public bool IsOpen => popupRoot != null && popupRoot.activeSelf;
 
     private void Awake()
     {
-        closeButton.onClick.AddListener(AbandonPuzzle);
+        startHiddenObjectButton.onClick.AddListener(StartHiddenObjectPuzzle);
+        startMemoryMatchButton.onClick.AddListener(StartMemoryMatchPuzzle);
+        closeSelectionButton.onClick.AddListener(CloseSelection);
+        closeHiddenObjectButton.onClick.AddListener(AbandonActivePuzzle);
+        closeMemoryMatchButton.onClick.AddListener(AbandonActivePuzzle);
         SetPopupVisible(false);
     }
 
@@ -37,57 +56,112 @@ public class PuzzlePopupUI : MonoBehaviour
             return;
         }
 
-        if (eventSender == null || panelRoot == null || hiddenObjectPuzzle == null)
+        if (!HasRequiredReferences())
         {
             Debug.LogError("PuzzlePopupUI bağlantıları eksik.");
             return;
         }
 
+        activePuzzleType = string.Empty;
         isEnding = false;
-        closeButton.interactable = true;
-        hiddenObjectPuzzle.BeginPuzzle();
+        ShowOnly(selectionPanel);
         SetPopupVisible(true);
-        SendPuzzleEvent("puzzle_started", "Unity üzerinden puzzle kağıdı tetiklendi");
     }
 
-    public void SendProgressEvent(string eventType, string value)
+    public bool IsPuzzleActive(string puzzleType)
     {
-        if (IsOpen && !isEnding)
+        return IsOpen && !isEnding && activePuzzleType == puzzleType;
+    }
+
+    public void SendProgressEvent(string puzzleType, string eventType, string value)
+    {
+        if (IsPuzzleActive(puzzleType))
         {
-            SendPuzzleEvent(eventType, value);
+            SendPuzzleEvent(puzzleType, eventType, value);
         }
     }
 
-    public void CompletePuzzle()
+    public void CompletePuzzle(string puzzleType, string value)
     {
-        if (!IsOpen || isEnding)
+        if (!IsPuzzleActive(puzzleType))
         {
             return;
         }
 
         isEnding = true;
-        closeButton.interactable = false;
-        SendPuzzleEvent(
-            "puzzle_solved",
-            "Hidden Object bulmacasında Işık Tohumu bulundu"
-        );
+        SetActiveCloseButtonInteractable(false);
+        SendPuzzleEvent(puzzleType, "puzzle_solved", value);
         StartCoroutine(CloseCompletedPuzzle());
     }
 
-    private void AbandonPuzzle()
+    private void StartHiddenObjectPuzzle()
     {
-        if (!IsOpen || isEnding || Time.unscaledTime < nextAllowedActionTime)
+        if (!CanStartPuzzle())
+        {
+            return;
+        }
+
+        activePuzzleType = HiddenObjectType;
+        hiddenObjectPuzzle.BeginPuzzle();
+        closeHiddenObjectButton.interactable = true;
+        ShowOnly(hiddenObjectPanel);
+        SendPuzzleEvent(
+            HiddenObjectType,
+            "puzzle_started",
+            "Hidden Object bulmacası başlatıldı"
+        );
+    }
+
+    private void StartMemoryMatchPuzzle()
+    {
+        if (!CanStartPuzzle())
+        {
+            return;
+        }
+
+        activePuzzleType = MemoryMatchType;
+        memoryMatchPuzzle.BeginPuzzle();
+        closeMemoryMatchButton.interactable = true;
+        ShowOnly(memoryMatchPanel);
+        SendPuzzleEvent(
+            MemoryMatchType,
+            "puzzle_started",
+            "Memory Match bulmacası başlatıldı"
+        );
+    }
+
+    private bool CanStartPuzzle()
+    {
+        return IsOpen && !isEnding && string.IsNullOrEmpty(activePuzzleType);
+    }
+
+    private void CloseSelection()
+    {
+        if (!IsOpen || !string.IsNullOrEmpty(activePuzzleType))
+        {
+            return;
+        }
+
+        nextAllowedActionTime = Time.unscaledTime + actionCooldown;
+        SetPopupVisible(false);
+    }
+
+    private void AbandonActivePuzzle()
+    {
+        if (!IsOpen || isEnding || string.IsNullOrEmpty(activePuzzleType))
         {
             return;
         }
 
         isEnding = true;
+        SetActiveCloseButtonInteractable(false);
+
+        string value = activePuzzleType == MemoryMatchType
+            ? "Memory Match bulmacası kapatıldı"
+            : "Popup kapatıldı, puzzle yarıda bırakıldı";
+
+        SendPuzzleEvent(activePuzzleType, "puzzle_abandoned", value);
         nextAllowedActionTime = Time.unscaledTime + actionCooldown;
-        closeButton.interactable = false;
-        SendPuzzleEvent(
-            "puzzle_abandoned",
-            "Popup kapatıldı, puzzle yarıda bırakıldı"
-        );
         SetPopupVisible(false);
     }
 
@@ -98,16 +172,23 @@ public class PuzzlePopupUI : MonoBehaviour
         SetPopupVisible(false);
     }
 
-    private void SendPuzzleEvent(string eventType, string value)
+    private void SendPuzzleEvent(string puzzleType, string eventType, string value)
     {
         eventSender.SendEvent(childId, eventType, region, puzzleType, value);
     }
 
+    private void ShowOnly(GameObject panelToShow)
+    {
+        selectionPanel.SetActive(panelToShow == selectionPanel);
+        hiddenObjectPanel.SetActive(panelToShow == hiddenObjectPanel);
+        memoryMatchPanel.SetActive(panelToShow == memoryMatchPanel);
+    }
+
     private void SetPopupVisible(bool isVisible)
     {
-        if (panelRoot != null)
+        if (popupRoot != null)
         {
-            panelRoot.SetActive(isVisible);
+            popupRoot.SetActive(isVisible);
         }
 
         if (playerController != null)
@@ -116,4 +197,26 @@ public class PuzzlePopupUI : MonoBehaviour
         }
     }
 
+    private void SetActiveCloseButtonInteractable(bool isInteractable)
+    {
+        if (activePuzzleType == MemoryMatchType)
+        {
+            closeMemoryMatchButton.interactable = isInteractable;
+        }
+        else if (activePuzzleType == HiddenObjectType)
+        {
+            closeHiddenObjectButton.interactable = isInteractable;
+        }
+    }
+
+    private bool HasRequiredReferences()
+    {
+        return eventSender != null &&
+               popupRoot != null &&
+               selectionPanel != null &&
+               hiddenObjectPanel != null &&
+               memoryMatchPanel != null &&
+               hiddenObjectPuzzle != null &&
+               memoryMatchPuzzle != null;
+    }
 }

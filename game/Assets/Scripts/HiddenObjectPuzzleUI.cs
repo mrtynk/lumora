@@ -3,6 +3,8 @@ using UnityEngine.UI;
 
 public class HiddenObjectPuzzleUI : MonoBehaviour
 {
+    private const string PuzzleType = "hidden_object";
+
     [Header("Bağlantılar")]
     [SerializeField] private PuzzlePopupUI puzzlePopup;
     [SerializeField] private Button lightSeedButton;
@@ -46,7 +48,10 @@ public class HiddenObjectPuzzleUI : MonoBehaviour
         feedbackText.text = "Işık Tohumu bulundu!";
         SetObjectButtonsInteractable(false);
         hintButton.interactable = false;
-        puzzlePopup.CompletePuzzle();
+        puzzlePopup.CompletePuzzle(
+            PuzzleType,
+            "Hidden Object bulmacasında Işık Tohumu bulundu"
+        );
     }
 
     private void SelectWrongObject(string objectName)
@@ -58,6 +63,7 @@ public class HiddenObjectPuzzleUI : MonoBehaviour
 
         feedbackText.text = "Bu nesne değil. Tekrar dene.";
         puzzlePopup.SendProgressEvent(
+            PuzzleType,
             "wrong_click",
             "Yanlış nesne seçildi: " + objectName
         );
@@ -74,6 +80,7 @@ public class HiddenObjectPuzzleUI : MonoBehaviour
         hintButton.interactable = false;
         feedbackText.text = "İpucu: Işık saçan tohumu seç.";
         puzzlePopup.SendProgressEvent(
+            PuzzleType,
             "hint_requested",
             "Hidden Object bulmacasında ipucu kullanıldı"
         );
@@ -81,7 +88,9 @@ public class HiddenObjectPuzzleUI : MonoBehaviour
 
     private bool CanInteract()
     {
-        return !isCompleted && puzzlePopup != null && puzzlePopup.IsOpen;
+        return !isCompleted &&
+               puzzlePopup != null &&
+               puzzlePopup.IsPuzzleActive(PuzzleType);
     }
 
     private void SetObjectButtonsInteractable(bool isInteractable)

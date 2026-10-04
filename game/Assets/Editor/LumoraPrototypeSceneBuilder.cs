@@ -153,16 +153,67 @@ public static class LumoraPrototypeSceneBuilder
         canvasScaler.referenceResolution = new Vector2(1920f, 1080f);
         canvasScaler.matchWidthOrHeight = 0.5f;
 
-        GameObject panel = CreateUiObject("PuzzlePanel", canvasObject.transform);
-        RectTransform panelRect = panel.GetComponent<RectTransform>();
-        SetCenteredRect(panelRect, new Vector2(700f, 440f), Vector2.zero);
-        Image panelImage = panel.AddComponent<Image>();
-        panelImage.color = new Color(0.12f, 0.16f, 0.22f, 0.97f);
+        GameObject popupRoot = CreateUiObject("PuzzlePopupRoot", canvasObject.transform);
+        RectTransform popupRootRect = popupRoot.GetComponent<RectTransform>();
+        popupRootRect.anchorMin = Vector2.zero;
+        popupRootRect.anchorMax = Vector2.one;
+        popupRootRect.offsetMin = Vector2.zero;
+        popupRootRect.offsetMax = Vector2.zero;
+        GameObject selectionPanel = CreatePopupPanel(
+            "PuzzleSelectionPanel",
+            popupRoot.transform,
+            new Vector2(620f, 340f)
+        );
 
         CreateText(
             "Title",
-            panel.transform,
-            "Bulmaca",
+            selectionPanel.transform,
+            "Bulmaca Seç",
+            34,
+            FontStyle.Bold,
+            new Vector2(540f, 50f),
+            new Vector2(0f, 115f)
+        );
+        CreateText(
+            "Description",
+            selectionPanel.transform,
+            "Oynamak istediğin bulmacayı seç.",
+            24,
+            FontStyle.Normal,
+            new Vector2(540f, 50f),
+            new Vector2(0f, 55f)
+        );
+        Button startHiddenObjectButton = CreateButton(
+            "StartHiddenObjectButton",
+            selectionPanel.transform,
+            "Hidden Object",
+            new Vector2(-105f, -20f),
+            new Color(0.92f, 0.72f, 0.18f)
+        );
+        Button startMemoryMatchButton = CreateButton(
+            "StartMemoryMatchButton",
+            selectionPanel.transform,
+            "Memory Match",
+            new Vector2(105f, -20f),
+            new Color(0.35f, 0.58f, 0.78f)
+        );
+        Button closeSelectionButton = CreateButton(
+            "CloseSelectionButton",
+            selectionPanel.transform,
+            "Kapat",
+            new Vector2(0f, -105f),
+            new Color(0.38f, 0.43f, 0.5f)
+        );
+
+        GameObject hiddenObjectPanel = CreatePopupPanel(
+            "HiddenObjectPanel",
+            popupRoot.transform,
+            new Vector2(700f, 440f)
+        );
+        CreateText(
+            "Title",
+            hiddenObjectPanel.transform,
+            "Hidden Object",
             34,
             FontStyle.Bold,
             new Vector2(620f, 50f),
@@ -170,7 +221,7 @@ public static class LumoraPrototypeSceneBuilder
         );
         CreateText(
             "Description",
-            panel.transform,
+            hiddenObjectPanel.transform,
             "Gizli nesneler arasından Işık Tohumu'nu bul.",
             24,
             FontStyle.Normal,
@@ -180,21 +231,21 @@ public static class LumoraPrototypeSceneBuilder
 
         Button lightSeedButton = CreateButton(
             "LightSeedButton",
-            panel.transform,
+            hiddenObjectPanel.transform,
             "Işık Tohumu",
             new Vector2(-210f, 25f),
             new Color(0.92f, 0.72f, 0.18f)
         );
         Button shinyStoneButton = CreateButton(
             "ShinyStoneButton",
-            panel.transform,
+            hiddenObjectPanel.transform,
             "Parlak Taş",
             new Vector2(0f, 25f),
             new Color(0.35f, 0.58f, 0.78f)
         );
         Button goldenLeafButton = CreateButton(
             "GoldenLeafButton",
-            panel.transform,
+            hiddenObjectPanel.transform,
             "Altın Yaprak",
             new Vector2(210f, 25f),
             new Color(0.75f, 0.52f, 0.2f)
@@ -202,7 +253,7 @@ public static class LumoraPrototypeSceneBuilder
 
         Text feedbackText = CreateText(
             "FeedbackText",
-            panel.transform,
+            hiddenObjectPanel.transform,
             "Işık Tohumu'nu bul.",
             21,
             FontStyle.Normal,
@@ -212,32 +263,130 @@ public static class LumoraPrototypeSceneBuilder
 
         Button hintButton = CreateButton(
             "HintButton",
-            panel.transform,
+            hiddenObjectPanel.transform,
             "İpucu",
             new Vector2(-95f, -140f),
             new Color(0.38f, 0.5f, 0.72f)
         );
-        Button closeButton = CreateButton(
-            "CloseButton",
-            panel.transform,
+        Button closeHiddenObjectButton = CreateButton(
+            "CloseHiddenObjectButton",
+            hiddenObjectPanel.transform,
             "Kapat",
             new Vector2(95f, -140f),
+            new Color(0.38f, 0.43f, 0.5f)
+        );
+
+        GameObject memoryMatchPanel = CreatePopupPanel(
+            "MemoryMatchPanel",
+            popupRoot.transform,
+            new Vector2(700f, 500f)
+        );
+        CreateText(
+            "Title",
+            memoryMatchPanel.transform,
+            "Memory Match",
+            34,
+            FontStyle.Bold,
+            new Vector2(620f, 50f),
+            new Vector2(0f, 195f)
+        );
+        CreateText(
+            "Description",
+            memoryMatchPanel.transform,
+            "Aynı sembolleri eşleştir.",
+            24,
+            FontStyle.Normal,
+            new Vector2(620f, 50f),
+            new Vector2(0f, 145f)
+        );
+
+        Button[] cardButtons =
+        {
+            CreateButton(
+                "Card1",
+                memoryMatchPanel.transform,
+                "?",
+                new Vector2(-105f, 65f),
+                new Color(0.28f, 0.48f, 0.7f)
+            ),
+            CreateButton(
+                "Card2",
+                memoryMatchPanel.transform,
+                "?",
+                new Vector2(105f, 65f),
+                new Color(0.28f, 0.48f, 0.7f)
+            ),
+            CreateButton(
+                "Card3",
+                memoryMatchPanel.transform,
+                "?",
+                new Vector2(-105f, -15f),
+                new Color(0.28f, 0.48f, 0.7f)
+            ),
+            CreateButton(
+                "Card4",
+                memoryMatchPanel.transform,
+                "?",
+                new Vector2(105f, -15f),
+                new Color(0.28f, 0.48f, 0.7f)
+            )
+        };
+
+        Text memoryStatusText = CreateText(
+            "StatusText",
+            memoryMatchPanel.transform,
+            "Aynı sembolleri eşleştir.",
+            21,
+            FontStyle.Normal,
+            new Vector2(620f, 50f),
+            new Vector2(0f, -90f)
+        );
+        Button closeMemoryMatchButton = CreateButton(
+            "CloseMemoryMatchButton",
+            memoryMatchPanel.transform,
+            "Kapat",
+            new Vector2(0f, -175f),
             new Color(0.38f, 0.43f, 0.5f)
         );
 
         PuzzlePopupUI popup = canvasObject.AddComponent<PuzzlePopupUI>();
         HiddenObjectPuzzleUI hiddenObjectPuzzle =
             canvasObject.AddComponent<HiddenObjectPuzzleUI>();
+        MemoryMatchPuzzleUI memoryMatchPuzzle =
+            canvasObject.AddComponent<MemoryMatchPuzzleUI>();
 
         SerializedObject popupObject = new SerializedObject(popup);
         SetStringProperty(popupObject, "childId", ChildId);
         SetStringProperty(popupObject, "region", "isikli_vadi");
-        SetStringProperty(popupObject, "puzzleType", "hidden_object");
         SetObjectProperty(popupObject, "eventSender", eventSender);
         SetObjectProperty(popupObject, "playerController", playerController);
-        SetObjectProperty(popupObject, "panelRoot", panel);
+        SetObjectProperty(popupObject, "popupRoot", popupRoot);
+        SetObjectProperty(popupObject, "selectionPanel", selectionPanel);
+        SetObjectProperty(popupObject, "hiddenObjectPanel", hiddenObjectPanel);
+        SetObjectProperty(popupObject, "memoryMatchPanel", memoryMatchPanel);
         SetObjectProperty(popupObject, "hiddenObjectPuzzle", hiddenObjectPuzzle);
-        SetObjectProperty(popupObject, "closeButton", closeButton);
+        SetObjectProperty(popupObject, "memoryMatchPuzzle", memoryMatchPuzzle);
+        SetObjectProperty(
+            popupObject,
+            "startHiddenObjectButton",
+            startHiddenObjectButton
+        );
+        SetObjectProperty(
+            popupObject,
+            "startMemoryMatchButton",
+            startMemoryMatchButton
+        );
+        SetObjectProperty(popupObject, "closeSelectionButton", closeSelectionButton);
+        SetObjectProperty(
+            popupObject,
+            "closeHiddenObjectButton",
+            closeHiddenObjectButton
+        );
+        SetObjectProperty(
+            popupObject,
+            "closeMemoryMatchButton",
+            closeMemoryMatchButton
+        );
         popupObject.ApplyModifiedPropertiesWithoutUndo();
 
         SerializedObject hiddenObject = new SerializedObject(hiddenObjectPuzzle);
@@ -249,9 +398,27 @@ public static class LumoraPrototypeSceneBuilder
         SetObjectProperty(hiddenObject, "feedbackText", feedbackText);
         hiddenObject.ApplyModifiedPropertiesWithoutUndo();
 
-        panel.SetActive(false);
+        SerializedObject memoryMatch = new SerializedObject(memoryMatchPuzzle);
+        SetObjectProperty(memoryMatch, "puzzlePopup", popup);
+        SetObjectArrayProperty(memoryMatch, "cardButtons", cardButtons);
+        SetObjectProperty(memoryMatch, "statusText", memoryStatusText);
+        memoryMatch.ApplyModifiedPropertiesWithoutUndo();
+
+        popupRoot.SetActive(false);
         CreateEventSystem();
         return popup;
+    }
+
+    private static GameObject CreatePopupPanel(
+        string name,
+        Transform parent,
+        Vector2 size)
+    {
+        GameObject panel = CreateUiObject(name, parent);
+        SetCenteredRect(panel.GetComponent<RectTransform>(), size, Vector2.zero);
+        Image panelImage = panel.AddComponent<Image>();
+        panelImage.color = new Color(0.12f, 0.16f, 0.22f, 0.97f);
+        return panel;
     }
 
     private static GameObject CreateUiObject(string name, Transform parent)
@@ -515,5 +682,25 @@ public static class LumoraPrototypeSceneBuilder
         }
 
         property.objectReferenceValue = value;
+    }
+
+    private static void SetObjectArrayProperty(
+        SerializedObject serializedObject,
+        string propertyName,
+        UnityEngine.Object[] values)
+    {
+        SerializedProperty property = serializedObject.FindProperty(propertyName);
+        if (property == null || !property.isArray)
+        {
+            throw new InvalidOperationException(
+                "Serialized array field was not found: " + propertyName
+            );
+        }
+
+        property.arraySize = values.Length;
+        for (int i = 0; i < values.Length; i++)
+        {
+            property.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+        }
     }
 }
