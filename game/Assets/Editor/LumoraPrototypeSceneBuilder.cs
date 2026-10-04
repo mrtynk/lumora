@@ -155,7 +155,7 @@ public static class LumoraPrototypeSceneBuilder
 
         GameObject panel = CreateUiObject("PuzzlePanel", canvasObject.transform);
         RectTransform panelRect = panel.GetComponent<RectTransform>();
-        SetCenteredRect(panelRect, new Vector2(560f, 320f), Vector2.zero);
+        SetCenteredRect(panelRect, new Vector2(700f, 440f), Vector2.zero);
         Image panelImage = panel.AddComponent<Image>();
         panelImage.color = new Color(0.12f, 0.16f, 0.22f, 0.97f);
 
@@ -165,42 +165,70 @@ public static class LumoraPrototypeSceneBuilder
             "Bulmaca",
             34,
             FontStyle.Bold,
-            new Vector2(480f, 50f),
-            new Vector2(0f, 95f)
+            new Vector2(620f, 50f),
+            new Vector2(0f, 165f)
         );
         CreateText(
             "Description",
             panel.transform,
-            "Bu bulmacayı tamamladın mı?",
+            "Gizli nesneler arasından Işık Tohumu'nu bul.",
             24,
             FontStyle.Normal,
-            new Vector2(480f, 60f),
-            new Vector2(0f, 35f)
+            new Vector2(620f, 55f),
+            new Vector2(0f, 110f)
         );
 
-        Button successButton = CreateButton(
-            "SuccessButton",
+        Button lightSeedButton = CreateButton(
+            "LightSeedButton",
             panel.transform,
-            "Başarılı",
-            new Vector2(-165f, -80f),
-            new Color(0.25f, 0.65f, 0.35f)
+            "Işık Tohumu",
+            new Vector2(-210f, 25f),
+            new Color(0.92f, 0.72f, 0.18f)
         );
-        Button failureButton = CreateButton(
-            "FailureButton",
+        Button shinyStoneButton = CreateButton(
+            "ShinyStoneButton",
             panel.transform,
-            "Başarısız",
-            new Vector2(0f, -80f),
-            new Color(0.78f, 0.28f, 0.25f)
+            "Parlak Taş",
+            new Vector2(0f, 25f),
+            new Color(0.35f, 0.58f, 0.78f)
+        );
+        Button goldenLeafButton = CreateButton(
+            "GoldenLeafButton",
+            panel.transform,
+            "Altın Yaprak",
+            new Vector2(210f, 25f),
+            new Color(0.75f, 0.52f, 0.2f)
+        );
+
+        Text feedbackText = CreateText(
+            "FeedbackText",
+            panel.transform,
+            "Işık Tohumu'nu bul.",
+            21,
+            FontStyle.Normal,
+            new Vector2(620f, 50f),
+            new Vector2(0f, -55f)
+        );
+
+        Button hintButton = CreateButton(
+            "HintButton",
+            panel.transform,
+            "İpucu",
+            new Vector2(-95f, -140f),
+            new Color(0.38f, 0.5f, 0.72f)
         );
         Button closeButton = CreateButton(
             "CloseButton",
             panel.transform,
             "Kapat",
-            new Vector2(165f, -80f),
+            new Vector2(95f, -140f),
             new Color(0.38f, 0.43f, 0.5f)
         );
 
         PuzzlePopupUI popup = canvasObject.AddComponent<PuzzlePopupUI>();
+        HiddenObjectPuzzleUI hiddenObjectPuzzle =
+            canvasObject.AddComponent<HiddenObjectPuzzleUI>();
+
         SerializedObject popupObject = new SerializedObject(popup);
         SetStringProperty(popupObject, "childId", ChildId);
         SetStringProperty(popupObject, "region", "isikli_vadi");
@@ -208,10 +236,18 @@ public static class LumoraPrototypeSceneBuilder
         SetObjectProperty(popupObject, "eventSender", eventSender);
         SetObjectProperty(popupObject, "playerController", playerController);
         SetObjectProperty(popupObject, "panelRoot", panel);
-        SetObjectProperty(popupObject, "successButton", successButton);
-        SetObjectProperty(popupObject, "failureButton", failureButton);
+        SetObjectProperty(popupObject, "hiddenObjectPuzzle", hiddenObjectPuzzle);
         SetObjectProperty(popupObject, "closeButton", closeButton);
         popupObject.ApplyModifiedPropertiesWithoutUndo();
+
+        SerializedObject hiddenObject = new SerializedObject(hiddenObjectPuzzle);
+        SetObjectProperty(hiddenObject, "puzzlePopup", popup);
+        SetObjectProperty(hiddenObject, "lightSeedButton", lightSeedButton);
+        SetObjectProperty(hiddenObject, "shinyStoneButton", shinyStoneButton);
+        SetObjectProperty(hiddenObject, "goldenLeafButton", goldenLeafButton);
+        SetObjectProperty(hiddenObject, "hintButton", hintButton);
+        SetObjectProperty(hiddenObject, "feedbackText", feedbackText);
+        hiddenObject.ApplyModifiedPropertiesWithoutUndo();
 
         panel.SetActive(false);
         CreateEventSystem();

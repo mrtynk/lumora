@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,21 +13,19 @@ public class PuzzlePopupUI : MonoBehaviour
     [SerializeField] private GameEventSender eventSender;
     [SerializeField] private PlayerController playerController;
     [SerializeField] private GameObject panelRoot;
-    [SerializeField] private Button successButton;
-    [SerializeField] private Button failureButton;
+    [SerializeField] private HiddenObjectPuzzleUI hiddenObjectPuzzle;
     [SerializeField] private Button closeButton;
 
     [Header("Koruma")]
     [SerializeField] private float actionCooldown = 0.35f;
 
     private float nextAllowedActionTime;
+    private bool isEnding;
 
     public bool IsOpen => panelRoot != null && panelRoot.activeSelf;
 
     private void Awake()
     {
-        successButton.onClick.AddListener(CompleteSuccessfully);
-        failureButton.onClick.AddListener(CompleteWithFailure);
         closeButton.onClick.AddListener(AbandonPuzzle);
         SetPopupVisible(false);
     }
@@ -38,51 +37,64 @@ public class PuzzlePopupUI : MonoBehaviour
             return;
         }
 
-        if (eventSender == null || panelRoot == null)
+        if (eventSender == null || panelRoot == null || hiddenObjectPuzzle == null)
         {
             Debug.LogError("PuzzlePopupUI bağlantıları eksik.");
             return;
         }
 
-        SetButtonsInteractable(true);
+        isEnding = false;
+        closeButton.interactable = true;
+        hiddenObjectPuzzle.BeginPuzzle();
         SetPopupVisible(true);
         SendPuzzleEvent("puzzle_started", "Unity üzerinden puzzle kağıdı tetiklendi");
     }
 
-    private void CompleteSuccessfully()
+    public void SendProgressEvent(string eventType, string value)
     {
-        SendResultAndClose(
-            "puzzle_solved",
-            "Popup üzerinden puzzle başarılı tamamlandı"
-        );
+        if (IsOpen && !isEnding)
+        {
+            SendPuzzleEvent(eventType, value);
+        }
     }
 
-    private void CompleteWithFailure()
+    public void CompletePuzzle()
     {
-        SendResultAndClose(
-            "puzzle_failed",
-            "Popup üzerinden puzzle başarısız oldu"
-        );
-    }
-
-    private void AbandonPuzzle()
-    {
-        SendResultAndClose(
-            "puzzle_abandoned",
-            "Popup kapatıldı, puzzle yarıda bırakıldı"
-        );
-    }
-
-    private void SendResultAndClose(string eventType, string value)
-    {
-        if (!IsOpen || Time.unscaledTime < nextAllowedActionTime)
+        if (!IsOpen || isEnding)
         {
             return;
         }
 
+        isEnding = true;
+        closeButton.interactable = false;
+        SendPuzzleEvent(
+            "puzzle_solved",
+            "Hidden Object bulmacasında Işık Tohumu bulundu"
+        );
+        StartCoroutine(CloseCompletedPuzzle());
+    }
+
+    private void AbandonPuzzle()
+    {
+        if (!IsOpen || isEnding || Time.unscaledTime < nextAllowedActionTime)
+        {
+            return;
+        }
+
+        isEnding = true;
         nextAllowedActionTime = Time.unscaledTime + actionCooldown;
-        SetButtonsInteractable(false);
-        SendPuzzleEvent(eventType, value);
+        closeButton.interactable = false;
+        SendPuzzleEvent(
+            "puzzle_abandoned",
+            "Popup kapatıldı, puzzle yarıda bırakıldı"
+        );
+        SetPopupVisible(false);
+    }
+
+    private IEnumerator CloseCompletedPuzzle()
+    {
+        yield return new WaitForSecondsRealtime(actionCooldown);
+        nextAllowedActionTime = Time.unscaledTime + actionCooldown;
         SetPopupVisible(false);
     }
 
@@ -104,10 +116,4 @@ public class PuzzlePopupUI : MonoBehaviour
         }
     }
 
-    private void SetButtonsInteractable(bool isInteractable)
-    {
-        successButton.interactable = isInteractable;
-        failureButton.interactable = isInteractable;
-        closeButton.interactable = isInteractable;
-    }
 }
