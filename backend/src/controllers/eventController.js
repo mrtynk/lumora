@@ -1,5 +1,22 @@
 const pool = require("../db/pool");
 
+const MAX_EVENT_LIMIT = 100;
+const DEFAULT_SAFE_LIMIT = 100;
+
+const parseEventLimit = (rawLimit) => {
+  if (rawLimit === undefined) {
+    return null;
+  }
+
+  const parsedLimit = Number(rawLimit);
+
+  if (!Number.isInteger(parsedLimit) || parsedLimit <= 0) {
+    return DEFAULT_SAFE_LIMIT;
+  }
+
+  return Math.min(parsedLimit, MAX_EVENT_LIMIT);
+};
+
 const createEvent = async (req, res) => {
   try {
     const { childId, eventType, region, puzzleType, value } = req.body;
@@ -40,9 +57,39 @@ const createEvent = async (req, res) => {
 
 const getEvents = async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT * FROM game_events ORDER BY created_at DESC`
-    );
+    const filterColumns = {
+      childId: "child_id",
+      eventType: "event_type",
+      region: "region",
+      puzzleType: "puzzle_type",
+    };
+    const conditions = [];
+    const queryValues = [];
+
+    for (const [queryName, columnName] of Object.entries(filterColumns)) {
+      const rawValue = req.query[queryName];
+
+      if (typeof rawValue === "string" && rawValue.trim() !== "") {
+        queryValues.push(rawValue.trim());
+        conditions.push(`${columnName} = $${queryValues.length}`);
+      }
+    }
+
+    let query = "SELECT * FROM game_events";
+
+    if (conditions.length > 0) {
+      query += ` WHERE ${conditions.join(" AND ")}`;
+    }
+
+    query += " ORDER BY created_at DESC";
+
+    const limit = parseEventLimit(req.query.limit);
+    if (limit !== null) {
+      queryValues.push(limit);
+      query += ` LIMIT $${queryValues.length}`;
+    }
+
+    const result = await pool.query(query, queryValues);
 
     res.json({
       message: "Eventler başarıyla listelendi.",
