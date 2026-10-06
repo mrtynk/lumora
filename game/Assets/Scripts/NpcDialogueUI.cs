@@ -12,6 +12,7 @@ public class NpcDialogueUI : MonoBehaviour
     [Header("Bağlantılar")]
     [SerializeField] private GameEventSender eventSender;
     [SerializeField] private PlayerController playerController;
+    [SerializeField] private DemoFlowController demoFlowController;
     [SerializeField] private GameObject popupRoot;
     [SerializeField] private Button helpButton;
     [SerializeField] private Button laterButton;
@@ -49,6 +50,7 @@ public class NpcDialogueUI : MonoBehaviour
         isHandlingChoice = false;
         SetButtonsInteractable(true);
         SetPopupVisible(true);
+        demoFlowController?.NotifyNpcDialogueOpened();
     }
 
     private void ChooseHelp()
@@ -79,6 +81,7 @@ public class NpcDialogueUI : MonoBehaviour
             SendEvent("npc_helped", "Oyuncu NPC'ye yardım etmeyi seçti");
         }
 
+        demoFlowController?.NotifyNpcChoice(willHelp);
         ClosePopup();
     }
 

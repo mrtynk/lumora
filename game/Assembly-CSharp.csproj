@@ -51,6 +51,7 @@
     <Compile Include="Assets\Scripts\PatternPuzzleUI.cs" />
     <Compile Include="Assets\Scripts\MemoryMatchPuzzleUI.cs" />
     <Compile Include="Assets\Scripts\GameEventSender.cs" />
+    <Compile Include="Assets\Scripts\DemoFlowController.cs" />
     <Compile Include="Assets\Scripts\PlayerController.cs" />
     <Compile Include="Assets\Scripts\NpcDialogueUI.cs" />
     <Compile Include="Assets\Scripts\PuzzleTrigger.cs" />

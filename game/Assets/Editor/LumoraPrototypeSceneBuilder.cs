@@ -43,19 +43,39 @@ public static class LumoraPrototypeSceneBuilder
             "Assets/Materials/ForestFriendMaterial.mat",
             new Color(0.25f, 0.68f, 0.58f)
         );
+        Material treeTrunkMaterial = GetOrCreateMaterial(
+            "Assets/Materials/LightTreeTrunkMaterial.mat",
+            new Color(0.38f, 0.22f, 0.12f)
+        );
+        Material treeCrownMaterial = GetOrCreateMaterial(
+            "Assets/Materials/LightTreeCrownMaterial.mat",
+            new Color(0.65f, 0.9f, 0.35f)
+        );
+        Material rewardMaterial = GetOrCreateMaterial(
+            "Assets/Materials/LightSeedRewardMaterial.mat",
+            new Color(1f, 0.78f, 0.15f)
+        );
 
         CreateGround(groundMaterial);
         GameObject player = CreatePlayer();
         GameEventSender eventSender = CreateGameManager();
+        DemoFlowController demoFlow = CreateDemoFlow(
+            eventSender,
+            treeTrunkMaterial,
+            treeCrownMaterial,
+            rewardMaterial
+        );
         PuzzlePopupUI puzzlePopup = CreatePuzzlePopup(
             eventSender,
-            player.GetComponent<PlayerController>()
+            player.GetComponent<PlayerController>(),
+            demoFlow
         );
         CreatePuzzlePaper(puzzleMaterial, puzzlePopup);
         CreateNpc(
             npcMaterial,
             eventSender,
-            player.GetComponent<PlayerController>()
+            player.GetComponent<PlayerController>(),
+            demoFlow
         );
         CreateOrConfigureMainCamera();
         CreateDirectionalLight();
@@ -142,14 +162,111 @@ public static class LumoraPrototypeSceneBuilder
         triggerObject.ApplyModifiedPropertiesWithoutUndo();
     }
 
+    private static DemoFlowController CreateDemoFlow(
+        GameEventSender eventSender,
+        Material trunkMaterial,
+        Material crownMaterial,
+        Material rewardMaterial)
+    {
+        GameObject environmentRoot = new GameObject("IsikliVadiEnvironment");
+
+        GameObject trunk = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        trunk.name = "LightTreeTrunk";
+        trunk.transform.SetParent(environmentRoot.transform);
+        trunk.transform.position = new Vector3(0f, 1.25f, 5f);
+        trunk.transform.localScale = new Vector3(0.55f, 1.25f, 0.55f);
+        trunk.GetComponent<Renderer>().sharedMaterial = trunkMaterial;
+
+        GameObject crown = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        crown.name = "LightTreeCrown";
+        crown.transform.SetParent(environmentRoot.transform);
+        crown.transform.position = new Vector3(0f, 3.4f, 5f);
+        crown.transform.localScale = new Vector3(2.3f, 2f, 2.3f);
+        crown.GetComponent<Renderer>().sharedMaterial = crownMaterial;
+
+        GameObject reward = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        reward.name = "LightSeedReward";
+        reward.transform.SetParent(environmentRoot.transform);
+        reward.transform.position = new Vector3(0f, 0.55f, 3.5f);
+        reward.transform.localScale = new Vector3(0.65f, 0.9f, 0.65f);
+        reward.GetComponent<Renderer>().sharedMaterial = rewardMaterial;
+        reward.SetActive(false);
+
+        GameObject canvasObject = new GameObject(
+            "DemoGuideCanvas",
+            typeof(RectTransform),
+            typeof(Canvas),
+            typeof(CanvasScaler),
+            typeof(GraphicRaycaster)
+        );
+
+        Canvas canvas = canvasObject.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 5;
+
+        CanvasScaler canvasScaler = canvasObject.GetComponent<CanvasScaler>();
+        canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        canvasScaler.referenceResolution = new Vector2(1920f, 1080f);
+        canvasScaler.matchWidthOrHeight = 0.5f;
+
+        GameObject guidePanel = CreateUiObject(
+            "DemoGuidePanel",
+            canvasObject.transform
+        );
+        RectTransform guideRect = guidePanel.GetComponent<RectTransform>();
+        guideRect.anchorMin = new Vector2(0.5f, 1f);
+        guideRect.anchorMax = new Vector2(0.5f, 1f);
+        guideRect.pivot = new Vector2(0.5f, 1f);
+        guideRect.sizeDelta = new Vector2(760f, 125f);
+        guideRect.anchoredPosition = new Vector2(0f, -20f);
+
+        Image guideImage = guidePanel.AddComponent<Image>();
+        guideImage.color = new Color(0.08f, 0.14f, 0.18f, 0.88f);
+        guideImage.raycastTarget = false;
+
+        Text titleText = CreateText(
+            "RegionTitle",
+            guidePanel.transform,
+            "Işıklı Vadi",
+            28,
+            FontStyle.Bold,
+            new Vector2(700f, 42f),
+            new Vector2(0f, 30f)
+        );
+        titleText.raycastTarget = false;
+
+        Text instructionText = CreateText(
+            "InstructionText",
+            guidePanel.transform,
+            "PuzzlePaper'a git ve E'ye bas.",
+            22,
+            FontStyle.Normal,
+            new Vector2(700f, 55f),
+            new Vector2(0f, -22f)
+        );
+        instructionText.raycastTarget = false;
+
+        DemoFlowController demoFlow =
+            canvasObject.AddComponent<DemoFlowController>();
+        SerializedObject flowObject = new SerializedObject(demoFlow);
+        SetObjectProperty(flowObject, "eventSender", eventSender);
+        SetObjectProperty(flowObject, "instructionText", instructionText);
+        SetObjectProperty(flowObject, "rewardObject", reward);
+        flowObject.ApplyModifiedPropertiesWithoutUndo();
+
+        return demoFlow;
+    }
+
     private static void CreateNpc(
         Material material,
         GameEventSender eventSender,
-        PlayerController playerController)
+        PlayerController playerController,
+        DemoFlowController demoFlow)
     {
         NpcDialogueUI dialogueUI = CreateNpcDialogueUi(
             eventSender,
-            playerController
+            playerController,
+            demoFlow
         );
 
         GameObject npc = GameObject.CreatePrimitive(PrimitiveType.Capsule);
@@ -175,7 +292,8 @@ public static class LumoraPrototypeSceneBuilder
 
     private static NpcDialogueUI CreateNpcDialogueUi(
         GameEventSender eventSender,
-        PlayerController playerController)
+        PlayerController playerController,
+        DemoFlowController demoFlow)
     {
         GameObject canvasObject = new GameObject(
             "NpcCanvas",
@@ -246,6 +364,7 @@ public static class LumoraPrototypeSceneBuilder
         SetStringProperty(dialogueObject, "region", "isikli_vadi");
         SetObjectProperty(dialogueObject, "eventSender", eventSender);
         SetObjectProperty(dialogueObject, "playerController", playerController);
+        SetObjectProperty(dialogueObject, "demoFlowController", demoFlow);
         SetObjectProperty(dialogueObject, "popupRoot", popupRoot);
         SetObjectProperty(dialogueObject, "helpButton", helpButton);
         SetObjectProperty(dialogueObject, "laterButton", laterButton);
@@ -258,7 +377,8 @@ public static class LumoraPrototypeSceneBuilder
 
     private static PuzzlePopupUI CreatePuzzlePopup(
         GameEventSender eventSender,
-        PlayerController playerController)
+        PlayerController playerController,
+        DemoFlowController demoFlow)
     {
         GameObject canvasObject = new GameObject(
             "PuzzleCanvas",
@@ -563,6 +683,7 @@ public static class LumoraPrototypeSceneBuilder
         SetStringProperty(popupObject, "region", "isikli_vadi");
         SetObjectProperty(popupObject, "eventSender", eventSender);
         SetObjectProperty(popupObject, "playerController", playerController);
+        SetObjectProperty(popupObject, "demoFlowController", demoFlow);
         SetObjectProperty(popupObject, "popupRoot", popupRoot);
         SetObjectProperty(popupObject, "selectionPanel", selectionPanel);
         SetObjectProperty(popupObject, "hiddenObjectPanel", hiddenObjectPanel);

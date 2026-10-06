@@ -15,6 +15,7 @@ public class PuzzlePopupUI : MonoBehaviour
     [Header("Genel Bağlantılar")]
     [SerializeField] private GameEventSender eventSender;
     [SerializeField] private PlayerController playerController;
+    [SerializeField] private DemoFlowController demoFlowController;
     [SerializeField] private GameObject popupRoot;
 
     [Header("Panel Bağlantıları")]
@@ -73,6 +74,7 @@ public class PuzzlePopupUI : MonoBehaviour
         isEnding = false;
         ShowOnly(selectionPanel);
         SetPopupVisible(true);
+        demoFlowController?.NotifyPuzzleInteractionStarted();
     }
 
     public bool IsPuzzleActive(string puzzleType)
@@ -98,6 +100,7 @@ public class PuzzlePopupUI : MonoBehaviour
         isEnding = true;
         SetActiveCloseButtonInteractable(false);
         SendPuzzleEvent(puzzleType, "puzzle_solved", value);
+        demoFlowController?.NotifyPuzzleCompleted();
         StartCoroutine(CloseCompletedPuzzle());
     }
 
