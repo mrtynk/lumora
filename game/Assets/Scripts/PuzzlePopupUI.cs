@@ -6,6 +6,7 @@ public class PuzzlePopupUI : MonoBehaviour
 {
     private const string HiddenObjectType = "hidden_object";
     private const string MemoryMatchType = "memory_match";
+    private const string PatternPuzzleType = "pattern_puzzle";
 
     [Header("Event Bilgileri")]
     [SerializeField] private string childId = "demo-child-001";
@@ -20,15 +21,19 @@ public class PuzzlePopupUI : MonoBehaviour
     [SerializeField] private GameObject selectionPanel;
     [SerializeField] private GameObject hiddenObjectPanel;
     [SerializeField] private GameObject memoryMatchPanel;
+    [SerializeField] private GameObject patternPuzzlePanel;
     [SerializeField] private HiddenObjectPuzzleUI hiddenObjectPuzzle;
     [SerializeField] private MemoryMatchPuzzleUI memoryMatchPuzzle;
+    [SerializeField] private PatternPuzzleUI patternPuzzle;
 
     [Header("Buton Bağlantıları")]
     [SerializeField] private Button startHiddenObjectButton;
     [SerializeField] private Button startMemoryMatchButton;
+    [SerializeField] private Button startPatternPuzzleButton;
     [SerializeField] private Button closeSelectionButton;
     [SerializeField] private Button closeHiddenObjectButton;
     [SerializeField] private Button closeMemoryMatchButton;
+    [SerializeField] private Button closePatternPuzzleButton;
 
     [Header("Koruma")]
     [SerializeField] private float actionCooldown = 0.35f;
@@ -43,9 +48,11 @@ public class PuzzlePopupUI : MonoBehaviour
     {
         startHiddenObjectButton.onClick.AddListener(StartHiddenObjectPuzzle);
         startMemoryMatchButton.onClick.AddListener(StartMemoryMatchPuzzle);
+        startPatternPuzzleButton.onClick.AddListener(StartPatternPuzzle);
         closeSelectionButton.onClick.AddListener(CloseSelection);
         closeHiddenObjectButton.onClick.AddListener(AbandonActivePuzzle);
         closeMemoryMatchButton.onClick.AddListener(AbandonActivePuzzle);
+        closePatternPuzzleButton.onClick.AddListener(AbandonActivePuzzle);
         SetPopupVisible(false);
     }
 
@@ -130,6 +137,24 @@ public class PuzzlePopupUI : MonoBehaviour
         );
     }
 
+    private void StartPatternPuzzle()
+    {
+        if (!CanStartPuzzle())
+        {
+            return;
+        }
+
+        activePuzzleType = PatternPuzzleType;
+        patternPuzzle.BeginPuzzle();
+        closePatternPuzzleButton.interactable = true;
+        ShowOnly(patternPuzzlePanel);
+        SendPuzzleEvent(
+            PatternPuzzleType,
+            "puzzle_started",
+            "Pattern Puzzle başlatıldı"
+        );
+    }
+
     private bool CanStartPuzzle()
     {
         return IsOpen && !isEnding && string.IsNullOrEmpty(activePuzzleType);
@@ -156,9 +181,19 @@ public class PuzzlePopupUI : MonoBehaviour
         isEnding = true;
         SetActiveCloseButtonInteractable(false);
 
-        string value = activePuzzleType == MemoryMatchType
-            ? "Memory Match bulmacası kapatıldı"
-            : "Popup kapatıldı, puzzle yarıda bırakıldı";
+        string value;
+        if (activePuzzleType == MemoryMatchType)
+        {
+            value = "Memory Match bulmacası kapatıldı";
+        }
+        else if (activePuzzleType == PatternPuzzleType)
+        {
+            value = "Pattern Puzzle kapatıldı";
+        }
+        else
+        {
+            value = "Popup kapatıldı, puzzle yarıda bırakıldı";
+        }
 
         SendPuzzleEvent(activePuzzleType, "puzzle_abandoned", value);
         nextAllowedActionTime = Time.unscaledTime + actionCooldown;
@@ -182,6 +217,7 @@ public class PuzzlePopupUI : MonoBehaviour
         selectionPanel.SetActive(panelToShow == selectionPanel);
         hiddenObjectPanel.SetActive(panelToShow == hiddenObjectPanel);
         memoryMatchPanel.SetActive(panelToShow == memoryMatchPanel);
+        patternPuzzlePanel.SetActive(panelToShow == patternPuzzlePanel);
     }
 
     private void SetPopupVisible(bool isVisible)
@@ -203,6 +239,10 @@ public class PuzzlePopupUI : MonoBehaviour
         {
             closeMemoryMatchButton.interactable = isInteractable;
         }
+        else if (activePuzzleType == PatternPuzzleType)
+        {
+            closePatternPuzzleButton.interactable = isInteractable;
+        }
         else if (activePuzzleType == HiddenObjectType)
         {
             closeHiddenObjectButton.interactable = isInteractable;
@@ -216,7 +256,9 @@ public class PuzzlePopupUI : MonoBehaviour
                selectionPanel != null &&
                hiddenObjectPanel != null &&
                memoryMatchPanel != null &&
+               patternPuzzlePanel != null &&
                hiddenObjectPuzzle != null &&
-               memoryMatchPuzzle != null;
+               memoryMatchPuzzle != null &&
+               patternPuzzle != null;
     }
 }

@@ -162,7 +162,7 @@ public static class LumoraPrototypeSceneBuilder
         GameObject selectionPanel = CreatePopupPanel(
             "PuzzleSelectionPanel",
             popupRoot.transform,
-            new Vector2(620f, 340f)
+            new Vector2(800f, 360f)
         );
 
         CreateText(
@@ -187,15 +187,22 @@ public static class LumoraPrototypeSceneBuilder
             "StartHiddenObjectButton",
             selectionPanel.transform,
             "Hidden Object",
-            new Vector2(-105f, -20f),
+            new Vector2(-210f, -20f),
             new Color(0.92f, 0.72f, 0.18f)
         );
         Button startMemoryMatchButton = CreateButton(
             "StartMemoryMatchButton",
             selectionPanel.transform,
             "Memory Match",
-            new Vector2(105f, -20f),
+            new Vector2(0f, -20f),
             new Color(0.35f, 0.58f, 0.78f)
+        );
+        Button startPatternPuzzleButton = CreateButton(
+            "StartPatternPuzzleButton",
+            selectionPanel.transform,
+            "Pattern Puzzle",
+            new Vector2(210f, -20f),
+            new Color(0.65f, 0.4f, 0.72f)
         );
         Button closeSelectionButton = CreateButton(
             "CloseSelectionButton",
@@ -349,11 +356,84 @@ public static class LumoraPrototypeSceneBuilder
             new Color(0.38f, 0.43f, 0.5f)
         );
 
+        GameObject patternPuzzlePanel = CreatePopupPanel(
+            "PatternPuzzlePanel",
+            popupRoot.transform,
+            new Vector2(720f, 460f)
+        );
+        CreateText(
+            "Title",
+            patternPuzzlePanel.transform,
+            "Pattern Puzzle",
+            34,
+            FontStyle.Bold,
+            new Vector2(640f, 50f),
+            new Vector2(0f, 175f)
+        );
+        CreateText(
+            "Description",
+            patternPuzzlePanel.transform,
+            "Örüntüyü tamamla.",
+            24,
+            FontStyle.Normal,
+            new Vector2(640f, 50f),
+            new Vector2(0f, 125f)
+        );
+        CreateText(
+            "PatternText",
+            patternPuzzlePanel.transform,
+            "Kırmızı - Mavi - Kırmızı - ?",
+            26,
+            FontStyle.Bold,
+            new Vector2(640f, 55f),
+            new Vector2(0f, 65f)
+        );
+
+        Button redButton = CreateButton(
+            "RedButton",
+            patternPuzzlePanel.transform,
+            "Kırmızı",
+            new Vector2(-190f, -15f),
+            new Color(0.78f, 0.25f, 0.25f)
+        );
+        Button blueButton = CreateButton(
+            "BlueButton",
+            patternPuzzlePanel.transform,
+            "Mavi",
+            new Vector2(0f, -15f),
+            new Color(0.25f, 0.45f, 0.82f)
+        );
+        Button yellowButton = CreateButton(
+            "YellowButton",
+            patternPuzzlePanel.transform,
+            "Sarı",
+            new Vector2(190f, -15f),
+            new Color(0.9f, 0.72f, 0.18f)
+        );
+        Text patternStatusText = CreateText(
+            "StatusText",
+            patternPuzzlePanel.transform,
+            "Doğru rengi seç.",
+            21,
+            FontStyle.Normal,
+            new Vector2(640f, 50f),
+            new Vector2(0f, -85f)
+        );
+        Button closePatternPuzzleButton = CreateButton(
+            "ClosePatternPuzzleButton",
+            patternPuzzlePanel.transform,
+            "Kapat",
+            new Vector2(0f, -155f),
+            new Color(0.38f, 0.43f, 0.5f)
+        );
+
         PuzzlePopupUI popup = canvasObject.AddComponent<PuzzlePopupUI>();
         HiddenObjectPuzzleUI hiddenObjectPuzzle =
             canvasObject.AddComponent<HiddenObjectPuzzleUI>();
         MemoryMatchPuzzleUI memoryMatchPuzzle =
             canvasObject.AddComponent<MemoryMatchPuzzleUI>();
+        PatternPuzzleUI patternPuzzle =
+            canvasObject.AddComponent<PatternPuzzleUI>();
 
         SerializedObject popupObject = new SerializedObject(popup);
         SetStringProperty(popupObject, "childId", ChildId);
@@ -364,8 +444,10 @@ public static class LumoraPrototypeSceneBuilder
         SetObjectProperty(popupObject, "selectionPanel", selectionPanel);
         SetObjectProperty(popupObject, "hiddenObjectPanel", hiddenObjectPanel);
         SetObjectProperty(popupObject, "memoryMatchPanel", memoryMatchPanel);
+        SetObjectProperty(popupObject, "patternPuzzlePanel", patternPuzzlePanel);
         SetObjectProperty(popupObject, "hiddenObjectPuzzle", hiddenObjectPuzzle);
         SetObjectProperty(popupObject, "memoryMatchPuzzle", memoryMatchPuzzle);
+        SetObjectProperty(popupObject, "patternPuzzle", patternPuzzle);
         SetObjectProperty(
             popupObject,
             "startHiddenObjectButton",
@@ -375,6 +457,11 @@ public static class LumoraPrototypeSceneBuilder
             popupObject,
             "startMemoryMatchButton",
             startMemoryMatchButton
+        );
+        SetObjectProperty(
+            popupObject,
+            "startPatternPuzzleButton",
+            startPatternPuzzleButton
         );
         SetObjectProperty(popupObject, "closeSelectionButton", closeSelectionButton);
         SetObjectProperty(
@@ -386,6 +473,11 @@ public static class LumoraPrototypeSceneBuilder
             popupObject,
             "closeMemoryMatchButton",
             closeMemoryMatchButton
+        );
+        SetObjectProperty(
+            popupObject,
+            "closePatternPuzzleButton",
+            closePatternPuzzleButton
         );
         popupObject.ApplyModifiedPropertiesWithoutUndo();
 
@@ -403,6 +495,14 @@ public static class LumoraPrototypeSceneBuilder
         SetObjectArrayProperty(memoryMatch, "cardButtons", cardButtons);
         SetObjectProperty(memoryMatch, "statusText", memoryStatusText);
         memoryMatch.ApplyModifiedPropertiesWithoutUndo();
+
+        SerializedObject pattern = new SerializedObject(patternPuzzle);
+        SetObjectProperty(pattern, "puzzlePopup", popup);
+        SetObjectProperty(pattern, "redButton", redButton);
+        SetObjectProperty(pattern, "blueButton", blueButton);
+        SetObjectProperty(pattern, "yellowButton", yellowButton);
+        SetObjectProperty(pattern, "statusText", patternStatusText);
+        pattern.ApplyModifiedPropertiesWithoutUndo();
 
         popupRoot.SetActive(false);
         CreateEventSystem();
