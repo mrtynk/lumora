@@ -2,89 +2,175 @@
 
 > Codex’e görev verirken örnek: **“TASKS.md içindeki 1.4 görevini uygula, CODEX_PROMPT.md kurallarına uy.”**
 
-Her görev ayrı branch/PR üzerinde ve yalnızca belirtilen kapsamda yapılır. Durum değerleri: `Yapılacak`, `Devam Ediyor`, `Tamamlandı`. Ortak kurallar için `CODEX_PROMPT.md` esas alınır.
+Her görev ayrı branch/PR üzerinde ve yalnızca belirtilen kapsamda yapılır. Durum değerleri: `Yapılacak`, `Devam Ediyor`, `Tamamlandı`, `Daha Sonra`. Ortak kurallar için `CODEX_PROMPT.md` esas alınır.
 
-## 1. Unity Oyun ve Etkileşim Prototipi
+## Oyun vizyonu
 
-### 1.1 Prototype Scene Builder
+Lumora; 5–7 yaş çocuklara yönelik, basit grafikli ve tamamlanabilir hikâye tabanlı bir 3D mobil macera oyunudur. Işık Ağacı gücünü kaybetmiş, dört ışık tohumu farklı bölgelere dağılmıştır. Oyuncu bölgeleri sırayla keşfeder, ana ışık tohumunu toplar ve bir sonraki bölgenin portalını açar.
 
-**Durum:** Tamamlandı  
-**Amaç:** Unity’de demo sahnesini otomatik kuran `Tools > Lumora > Build Prototype Scene` sistemini oluşturmak.  
-**Kapsam:** `game/Assets/Editor`, `game/Assets/Scripts`, `game/Assets/Scenes`, `game/Assets/Materials`.  
-**Çıktı:** Ground, Player, GameManager, PuzzlePaper, Main Camera ve Directional Light içeren `PrototypeScene`.  
-**Eventler:** Yok.  
-**Test:** Menü çalıştırılır; sahne objeleri ve oyuncu hareketi Play Mode’da doğrulanır.  
-**Not:** Tamamlandı.
+> Mevcut puzzle sistemleri ana oyun içinde oyun mantığında değil, gizli/opsiyonel mini görevler olarak kullanılacaktır. Ana oyun ilerleyişi 4 bölge, ışık tohumu toplama ve portal açma sistemi üzerine kurulacaktır.
 
-### 1.2 Unity Backend Event Sender
+## 1. Unity Oyun Prototipi ve Ana Oynanış
+
+### 1.1 Teknik Sahne ve Event Altyapısı
 
 **Durum:** Tamamlandı  
-**Amaç:** Unity’den backend `POST /api/events` endpointine event göndermek.  
-**Kapsam:** `game/Assets/Scripts`, `game/Assets/Editor`.  
-**Çıktı:** `GameEventSender.cs` ile JSON event gönderimi ve sahne bağlantısı.  
-**Eventler:** `puzzle_started`.  
-**Test:** Backend açıkken Unity etkileşimi yapılır; kayıt `GET /api/events` ile kontrol edilir.  
-**Not:** Tamamlandı.
+**Amaç:** Unity sahnesi, oyuncu, event gönderimi ve temel demo altyapısını kurmak.  
+**Kapsam:** Tamamlanan `game/Assets` teknik prototipi.  
+**Çıktı:** Prototype Scene Builder; Unity Backend Event Sender; Puzzle Popup UI; Işıklı Vadi Demo Akışı (teknik event demosu).  
+**Eventler:** `area_explored`, `reward_collected` ve mevcut temel oyun eventleri.  
+**Test:** PrototypeScene otomatik kurulur; hareket, backend bağlantısı ve teknik demo akışı doğrulanır.  
+**Not:** Bu görev teknik event ve mini görev altyapısını sağlar; nihai oyun yapısı için bölge, portal, ışık tohumu ve hikâye ilerleme sistemi ayrıca geliştirilecektir. Bu bölüm gerçek oyun deneyimini değil, teknik altyapıyı temsil eder.
 
-### 1.3 Puzzle Popup UI
+### 1.2 Mini Puzzle Altyapısı
 
 **Durum:** Tamamlandı  
-**Amaç:** PuzzlePaper yanında E’ye basınca popup açmak ve popup sonuçlarını backend’e göndermek.  
-**Kapsam:** `game/Assets/Scripts`, `game/Assets/Editor`, `game/Assets/UI`, `game/Assets/Scenes`.  
-**Çıktı:** `PuzzlePopupUI.cs`, güncellenmiş `PuzzleTrigger.cs` ve otomatik UI kuran sahne builder.  
-**Eventler:** `puzzle_started`, `puzzle_solved`, `puzzle_failed`, `puzzle_abandoned`.  
-**Test:** Popup açılır; üç sonuç butonu ayrı ayrı denenip API kayıtları doğrulanır.  
-**Not:** Tamamlandı.
+**Amaç:** Hidden Object, Memory Match ve Pattern Puzzle sistemlerini kurmak.  
+**Kapsam:** Tamamlanan puzzle UI ve event altyapısı.  
+**Çıktı:** Hidden Object Demo Puzzle; Memory Match Demo Puzzle; Pattern Puzzle Demo.  
+**Eventler:** `puzzle_started`, `puzzle_solved`, `puzzle_failed`, `puzzle_abandoned`, `wrong_click`, `hint_requested`, `retry_attempt`, `choice_made`.  
+**Test:** Üç puzzle açılır, tamamlanır ve eventleri API üzerinden doğrulanır.  
+**Not:** Bu görev teknik event ve mini görev altyapısını sağlar; nihai oyun yapısı için bölge, portal, ışık tohumu ve hikâye ilerleme sistemi ayrıca geliştirilecektir. Puzzlelar ana ilerleyişin merkezinde değil, gizli/opsiyonel davranış verisi noktalarıdır.
 
-### 1.4 Hidden Object Demo Puzzle
+### 1.3 NPC ve Seçim Altyapısı
 
-**Durum:** Yapılacak  
-**Amaç:** Çocuğun doğru nesneyi bularak hidden object mini puzzle’ını tamamlamasını sağlamak.  
-**Kapsam:** Yalnızca `game/Assets`; backend ve parent panel değiştirilmez.  
-**Çıktı:** Üç tıklanabilir obje, doğru “Işık Tohumu”, iki yanlış obje ve ipucu butonu.  
-**Eventler:** `puzzle_started`, `wrong_click`, `hint_requested`, `puzzle_solved`, `puzzle_abandoned`.  
-**Test:** Backend açıkken puzzle açılır; yanlış obje, ipucu, doğru obje ve kapatma akışları `GET /api/events` üzerinden doğrulanır.  
-**Not:** Mevcut popup ve otomatik sahne builder genişletilmeli; Inspector’da uzun manuel bağlantı gerektirmemeli.
-
-### 1.5 Memory Match Demo Puzzle
-
-**Durum:** Yapılacak  
-**Amaç:** Üç kart çiftiyle tekrar oynanabilir hafıza eşleştirme puzzle’ı oluşturmak.  
-**Kapsam:** Yalnızca `game/Assets`; mevcut hidden object akışı bozulmaz.  
-**Çıktı:** Karıştırılan kartlar, eşleşme kontrolü, deneme sayacı ve tamamlanma durumu.  
-**Eventler:** `puzzle_started`, `retry_attempt`, `hint_requested`, `puzzle_solved`, `puzzle_abandoned`.  
-**Test:** Doğru/yanlış eşleşmeler, ipucu, bitiş ve yeniden açma Play Mode’da ve API’de kontrol edilir.  
-**Not:** Ortak popup/event bileşenleri yeniden kullanılmalı.
-
-### 1.6 Pattern Puzzle Demo
-
-**Durum:** Yapılacak  
-**Amaç:** Basit renk veya şekil örüntüsünü tamamlatan mini puzzle geliştirmek.  
-**Kapsam:** Yalnızca `game/Assets`; diğer puzzle türleri değiştirilmez.  
-**Çıktı:** En az üç örüntü, cevap seçenekleri, geri bildirim ve tekrar deneme akışı.  
-**Eventler:** `puzzle_started`, `wrong_click`, `retry_attempt`, `hint_requested`, `puzzle_solved`, `puzzle_abandoned`.  
-**Test:** Yanlış/doğru cevap, ipucu, tekrar ve kapatma sonuçları Play Mode’da ve API’de doğrulanır.  
-**Not:** Puzzle türü eventlerde `pattern` olarak ayırt edilebilir olmalı.
-
-### 1.7 NPC ve Seçim Etkileşimi
-
-**Durum:** Yapılacak  
-**Amaç:** Oyuncunun örnek bir NPC ile konuşup iki seçenekten birini seçmesini sağlamak.  
-**Kapsam:** `game/Assets/Scripts`, `game/Assets/Editor`, `game/Assets/UI`, `game/Assets/Scenes`.  
-**Çıktı:** Yaklaşma tetikleyicisi, kısa diyalog UI’ı, iki seçim ve yardım sonucu.  
+**Durum:** Tamamlandı  
+**Amaç:** Basit NPC diyaloğu ve seçim eventlerini kurmak.  
+**Kapsam:** Tamamlanan NPC ve seçim prototipi.  
+**Çıktı:** NPC ve Seçim Etkileşimi.  
 **Eventler:** `dialogue_selected`, `choice_made`, `npc_helped`.  
-**Test:** Her seçim ayrı oynanır; UI akışı ve gönderilen event değerleri API’den kontrol edilir.  
-**Not:** Sahne bağlantıları mümkün olduğunca builder tarafından kurulmalı.
+**Test:** Yardım Et, Sonra ve Kapat akışları Play Mode’da doğrulanır.  
+**Not:** Bu görev teknik event ve mini görev altyapısını sağlar; nihai oyun yapısı için bölge, portal, ışık tohumu ve hikâye ilerleme sistemi ayrıca geliştirilecektir. Bu yapı ileride bölge görevleri ve hikâye seçimleri için kullanılacaktır.
 
-### 1.8 Işıklı Vadi Demo Akışı
+### 1.4 Ana Hikâye Giriş Sahnesi
 
 **Durum:** Yapılacak  
-**Amaç:** Keşif, puzzle, NPC ve ödül adımlarını tek oynanabilir demo akışında birleştirmek.  
-**Kapsam:** Yalnızca `game/Assets`; backend ve parent panel değiştirilmez.  
-**Çıktı:** Başlangıçtan ödüle kadar sıralı, bloklanmayan Işıklı Vadi demo akışı.  
-**Eventler:** `area_explored`, puzzle eventleri, `dialogue_selected`, `choice_made`, `npc_helped`, `reward_collected`.  
-**Test:** Temiz sahnede demo baştan sona oynanır; sıra, tekrar açma ve tüm API kayıtları doğrulanır.  
-**Not:** Tek bölge ve kısa teslim demosu kapsamıyla sınırlı kalmalı.
+**Amaç:** Lumora dünyasının karardığını ve Işık Ağacı’nın gücünü kaybettiğini anlatan kısa giriş akışı oluşturmak.  
+**Kapsam:** Yalnızca `game/Assets`.  
+**Çıktı:** Kısa giriş UI/metni; güç kaybeden Işık Ağacı sahnesi; “Işıklı Vadi’ye git ve ilk ışık tohumunu bul.” hedefi.  
+**Eventler:** `area_explored`.  
+**Test:** Play Mode başladığında oyuncu hikâyeyi ve ilk hedefi anlayabilmeli.  
+**Not:** Giriş kısa, çocuk dostu ve atlanabilir olmalı.
+
+### 1.5 Bölge Sistemi ve Portal Mantığı
+
+**Durum:** Yapılacak  
+**Amaç:** Dört bölgeye dayalı sıralı ilerleme sistemini kurmak.  
+**Kapsam:** Yalnızca `game/Assets`.  
+**Çıktı:** Işıklı Vadi, Sisli Orman, Kristal Mağara ve Karanlık Tepe temsilleri; portal noktaları; tohuma bağlı kilit/açık durumu.  
+**Eventler:** `area_explored`, `reward_collected`.  
+**Test:** İlk bölge tamamlanmadan ikinci bölgeye geçilememeli; tohum alınınca portal açılmalı.  
+**Not:** Kalıcı kayıt bu görevin dışında; Play Mode oturum durumu yeterlidir.
+
+### 1.6 Işık Tohumu Toplama Sistemi
+
+**Durum:** Yapılacak  
+**Amaç:** Her bölgenin ana hedefi olan ışık tohumlarını toplanabilir yapmak.  
+**Kapsam:** Yalnızca `game/Assets`.  
+**Çıktı:** Işık tohumu objesi; bölgeye ait tohum durumu; UI güncellemesi; portal açma bildirimi.  
+**Eventler:** `reward_collected`.  
+**Test:** Tohum alındığında event gitmeli, UI güncellenmeli ve sonraki portal açılmalı.  
+**Not:** Her bölgenin tohumu yalnızca bir kez toplanabilmeli.
+
+### 1.7 Basit Harita / Bölge İlerleme UI
+
+**Durum:** Yapılacak  
+**Amaç:** Oyuncunun bölgesini, hedefini ve topladığı ışık tohumu sayısını göstermek.  
+**Kapsam:** Yalnızca `game/Assets`.  
+**Çıktı:** Bölge adı; tohum sayacı; aktif hedef; portal kilit/açık göstergesi.  
+**Eventler:** Yok.  
+**Test:** Bölge, tohum ve portal durumu değiştikçe UI doğru güncellenmeli.  
+**Not:** Mobil ekranda okunabilir ve sade olmalı.
+
+### 1.8 Bölge 1 — Işıklı Vadi Oynanabilir Level
+
+**Durum:** Yapılacak  
+**Amaç:** Teknik demo alanını küçük fakat anlamlı ilk bölgeye dönüştürmek.  
+**Kapsam:** Yalnızca `game/Assets`.  
+**Çıktı:** Başlangıç noktası; yürünebilir yol/platformlar; Işık Ağacı atmosferi; ışık tohumu; portal; NPC; gizli puzzle noktası.  
+**Eventler:** `area_explored`, `reward_collected`, `npc_helped`.  
+**Test:** Oyuncu başlangıçtan tohuma ulaşabilmeli ve tohum alındığında portal açılmalı.  
+**Not:** Kısa bir oynanabilir level hedeflenir; büyük açık dünya yapılmaz.
+
+### 1.9 Bölge 2 — Sisli Orman Taslağı
+
+**Durum:** Yapılacak  
+**Amaç:** İkinci bölge için küçük oynanabilir alan taslağı oluşturmak.  
+**Kapsam:** Yalnızca `game/Assets`.  
+**Çıktı:** Sisli Orman teması; ışık tohumu; giriş/çıkış portalı; basit engel veya keşif yolu.  
+**Eventler:** `area_explored`, `reward_collected`.  
+**Test:** Bölge 1 tamamlanmadan erişilememeli; tohum alınca sonraki portal açılmalı.  
+**Not:** Primitive ve düşük maliyetli görseller yeterlidir.
+
+### 1.10 Bölge 3 — Kristal Mağara Taslağı
+
+**Durum:** Yapılacak  
+**Amaç:** Üçüncü bölge için küçük oynanabilir alan taslağı oluşturmak.  
+**Kapsam:** Yalnızca `game/Assets`.  
+**Çıktı:** Kristal Mağara teması; ışık tohumu; basit platform/geçiş yapısı; portal.  
+**Eventler:** `area_explored`, `reward_collected`.  
+**Test:** Bölge 2 tamamlanmadan erişilememeli; tohum alınca son bölge açılmalı.  
+**Not:** Bölge mekaniği tek oturumda test edilebilir boyutta kalmalı.
+
+### 1.11 Bölge 4 — Karanlık Tepe ve Final Taslağı
+
+**Durum:** Yapılacak  
+**Amaç:** Son bölgeyi ve Işık Ağacı’nın geri kazanım finalini oluşturmak.  
+**Kapsam:** Yalnızca `game/Assets`.  
+**Çıktı:** Karanlık Tepe alanı; son ışık tohumu; final Işık Ağacı mesajı; demo finali.  
+**Eventler:** `area_explored`, `reward_collected`, `choice_made`.  
+**Test:** Dördüncü tohumdan sonra final mesajı gösterilmeli.  
+**Not:** Final kısa ve açık bir tamamlanma hissi vermeli.
+
+### 1.12 Portal Açılma / Kilit Sistemi
+
+**Durum:** Yapılacak  
+**Amaç:** Bölge geçişlerini ilgili ışık tohumu durumuna göre kilitlemek.  
+**Kapsam:** Yalnızca `game/Assets`.  
+**Çıktı:** Kapalı/açık portal görünümü; kilit mesajı; açık portal ile bölge geçişi.  
+**Eventler:** `area_explored`.  
+**Test:** Tohum yokken geçiş engellenmeli; tohum varken sonraki bölgeye geçilmeli.  
+**Not:** 1.5 ve 1.6 sistemleriyle tek bir durum kaynağı kullanılmalı.
+
+### 1.13 Mini Puzzle Noktalarını Haritaya Yerleştirme
+
+**Durum:** Yapılacak  
+**Amaç:** Mevcut puzzleları gizli ve opsiyonel davranış verisi noktalarına dönüştürmek.  
+**Kapsam:** Yalnızca `game/Assets`.  
+**Çıktı:** Her bölgede en az bir opsiyonel puzzle noktası; ana ilerleyişten bağımsız yerleşim; isteğe bağlı küçük ödül.  
+**Eventler:** `puzzle_started`, `puzzle_solved`, `wrong_click`, `hint_requested`, `retry_attempt`.  
+**Test:** Oyuncu puzzle yapmadan ana tohumu alabilmeli; puzzle oynandığında ek eventler üretilmeli.  
+**Not:** Puzzle tamamlamak portal açmanın zorunlu koşulu olmamalı.
+
+### 1.14 Oyuncu Kontrol ve Kamera İyileştirme
+
+**Durum:** Yapılacak  
+**Amaç:** Hareketi ve kamera takibini daha akıcı, mobil oyuna daha yakın hâle getirmek.  
+**Kapsam:** Yalnızca `game/Assets`.  
+**Çıktı:** Yumuşak karakter hareketi; kamera takibi; temel mobil kontrol yaklaşımı.  
+**Eventler:** Yok.  
+**Test:** Oyuncu bölgelerde rahat hareket etmeli, kamera hedefi kaybetmemeli.  
+**Not:** Kontroller 5–7 yaş grubu için basit tutulmalı.
+
+### 1.15 Çocuk Dostu Görsel Atmosfer İyileştirme
+
+**Durum:** Yapılacak  
+**Amaç:** Teknik test sahnesini sıcak ve çocuk dostu bir oyun alanına dönüştürmek.  
+**Kapsam:** Yalnızca `game/Assets`.  
+**Çıktı:** Yumuşak renkler; bölgesel dekorlar; ışık, ağaç, taş ve kristal primitive’leri; tutarlı atmosfer.  
+**Eventler:** Yok.  
+**Test:** Sahne teknik prototipten çok sade bir oyun alanı gibi görünmeli.  
+**Not:** Performans ve okunabilirlik ayrıntılı görsellikten önceliklidir.
+
+### 1.16 Android APK Hazırlığı
+
+**Durum:** Daha Sonra  
+**Amaç:** Unity projesinden Android test APK’sı almak.  
+**Kapsam:** Unity build ayarları ve gerektiğinde `game/Assets`.  
+**Çıktı:** Android test APK’sı ve cihaz bağlantı ayarları.  
+**Eventler:** Mevcut oyun eventleri.  
+**Test:** APK Android cihazda açılmalı ve backend’e erişebilmelidir.  
+**Not:** Cihaz testinde `localhost` yerine yapılandırılabilir bilgisayar IP’si kullanılmalı.
 
 ## 2. Backend, Veritabanı ve Event Altyapısı
 
@@ -115,15 +201,15 @@ Her görev ayrı branch/PR üzerinde ve yalnızca belirtilen kapsamda yapılır.
 **Durum:** Yapılacak  
 **Amaç:** Yeni oyun eventlerinin altı davranış skoruna etkisini tanımlamak.  
 **Kapsam:** Yalnızca `backend/src/controllers` ve gerekiyorsa backend testleri; endpoint formatı korunur.  
-**Çıktı:** `wrong_click`, `hint_requested`, `retry_attempt`, NPC/seçim ve keşif eventleri için açık skor eşlemesi.  
-**Eventler:** Yol haritasındaki 12 ana event.  
+**Çıktı:** Puzzle, NPC/seçim ve keşif eventleri için açık skor eşlemesi.  
+**Eventler:** Yol haritasındaki ana eventler.  
 **Test:** Her event için kontrollü veriyle etkilenen ve etkilenmeyen skorlar doğrulanır.  
 **Not:** Aynı event aynı girdide deterministik sonuç vermeli.
 
 ### 3.2 Skor Formüllerini Güncelleme
 
 **Durum:** Yapılacak  
-**Amaç:** Dikkat, Azim, Merak, Bağımsızlık, Stratejik Düşünme ve Sosyal Eğilim skorlarını dengeli hâle getirmek.  
+**Amaç:** Altı davranış skorunu dengeli ve açıklanabilir hâle getirmek.  
 **Kapsam:** Yalnızca backend skor mantığı ve testleri; veritabanı şeması değiştirilmez.  
 **Çıktı:** Belgelenmiş ağırlıklar, alt/üst sınırlar ve örnek senaryo sonuçları.  
 **Eventler:** Skora dahil edilen tüm eventler.  
@@ -157,9 +243,9 @@ Her görev ayrı branch/PR üzerinde ve yalnızca belirtilen kapsamda yapılır.
 ### 5.1 README Demo Flow
 
 **Durum:** Yapılacak  
-**Amaç:** Projenin kurulumunu ve uçtan uca demo akışını tek belgede anlatmak.  
+**Amaç:** Projenin kurulumunu ve uçtan uca oyun/demo akışını tek belgede anlatmak.  
 **Kapsam:** Kök `README.md`; uygulama kodları değiştirilmez.  
-**Çıktı:** Gereksinimler, PostgreSQL/backend/panel/Unity çalıştırma ve demo adımları.  
+**Çıktı:** Gereksinimler, PostgreSQL/backend/panel/Unity çalıştırma ve oyun akışı.  
 **Eventler:** Demo boyunca beklenen ana eventler belgelenir.  
 **Test:** Adımlar temiz bir kontrol listesi olarak uygulanır; komutlar ve adresler doğrulanır.  
 **Not:** Gizli bilgiler ve gerçek şifreler belgeye eklenmez.
@@ -168,38 +254,25 @@ Her görev ayrı branch/PR üzerinde ve yalnızca belirtilen kapsamda yapılır.
 
 **Durum:** Yapılacak  
 **Amaç:** Jüri sunumunda tekrarlanabilir kısa bir teknik gösterim akışı hazırlamak.  
-**Kapsam:** `docs`; oyun, backend ve panel kodları değiştirilmez.  
-**Çıktı:** Hazırlık, 5–10 dakikalık gösterim sırası, beklenen sonuçlar ve hata durumunda yedek plan.  
-**Eventler:** Puzzle, keşif, NPC/seçim ve ödül eventleri.  
+**Kapsam:** Yalnızca `docs`; oyun, backend ve panel kodları değiştirilmez.  
+**Çıktı:** Hazırlık; 5–10 dakikalık gösterim sırası; beklenen sonuçlar; yedek plan.  
+**Eventler:** Bölge, tohum, portal, puzzle ve NPC eventleri.  
 **Test:** Senaryo baştan sona süre tutularak en az iki kez prova edilir.  
 **Not:** Seed/reset adımı 2.2 ile uyumlu olmalı.
 
-### 5.3 Android APK Hazırlığı
-
-**Durum:** Yapılacak  
-**Amaç:** Işıklı Vadi demosunu Android cihazda kurulabilir ve test edilebilir hâle getirmek.  
-**Kapsam:** `game/Assets`, `game/ProjectSettings` ve Android build ayarları; backend değiştirilmez.  
-**Çıktı:** Geliştirme APK’sı, cihazdan erişilebilir backend adresi ve build notları.  
-**Eventler:** Unity demosunun ürettiği mevcut eventler.  
-**Test:** APK gerçek cihazda kurulur; hareket, popup, puzzle ve ağ istekleri aynı Wi-Fi üzerinde denenir.  
-**Not:** `localhost` yerine yapılandırılabilir bilgisayar IP’si kullanılmalı.
-
-### 5.4 Final Rapor Güncelleme Notları
+### 5.3 Final Rapor Güncelleme Notları
 
 **Durum:** Yapılacak  
 **Amaç:** Tamamlanan teknik çalışmaların bitirme raporuna aktarılacak özetini hazırlamak.  
 **Kapsam:** Yalnızca `docs`; mevcut uygulama kodları değiştirilmez.  
-**Çıktı:** Mimari, event modeli, skor yaklaşımı, test sonuçları, ekran görüntüsü listesi ve sınırlılıklar için güncelleme notları.  
+**Çıktı:** Mimari, oyun ilerleyişi, event modeli, skor yaklaşımı, test sonuçları ve sınırlılıklar.  
 **Eventler:** Ana event kataloğu ve skor ilişkileri belgelenir.  
-**Test:** Notlar güncel endpoint, ekran ve demo akışıyla karşılaştırılır.  
+**Test:** Notlar güncel oyun, endpoint, ekran ve demo akışıyla karşılaştırılır.  
 **Not:** Akademik yorumlar doğrulanabilir proje çıktılarından ayrılmalı.
 
 ## Daha Sonra / Opsiyonel
 
-Ana teslim hedefi tamamlandıktan sonra ayrı kapsamlandırılabilir:
-
 - Tam açık dünya sistemi
-- Dört bölgenin tamamını eksiksiz geliştirme
 - Store yayını
 - Online deployment
 - Gelişmiş AI öneri motoru
@@ -207,4 +280,4 @@ Ana teslim hedefi tamamlandıktan sonra ayrı kapsamlandırılabilir:
 - Gerçek çocuk testi
 - Tam pedagogik değerlendirme sistemi
 
-Sıradaki Önerilen Görev: 1.4 Hidden Object Demo Puzzle
+Sıradaki Önerilen Görev: 1.4 Ana Hikâye Giriş Sahnesi
