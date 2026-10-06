@@ -39,6 +39,10 @@ public static class LumoraPrototypeSceneBuilder
             "Assets/Materials/PuzzlePaperMaterial.mat",
             new Color(1f, 0.82f, 0.15f)
         );
+        Material npcMaterial = GetOrCreateMaterial(
+            "Assets/Materials/ForestFriendMaterial.mat",
+            new Color(0.25f, 0.68f, 0.58f)
+        );
 
         CreateGround(groundMaterial);
         GameObject player = CreatePlayer();
@@ -48,6 +52,11 @@ public static class LumoraPrototypeSceneBuilder
             player.GetComponent<PlayerController>()
         );
         CreatePuzzlePaper(puzzleMaterial, puzzlePopup);
+        CreateNpc(
+            npcMaterial,
+            eventSender,
+            player.GetComponent<PlayerController>()
+        );
         CreateOrConfigureMainCamera();
         CreateDirectionalLight();
 
@@ -131,6 +140,120 @@ public static class LumoraPrototypeSceneBuilder
         SerializedObject triggerObject = new SerializedObject(puzzleTrigger);
         SetObjectProperty(triggerObject, "puzzlePopup", puzzlePopup);
         triggerObject.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static void CreateNpc(
+        Material material,
+        GameEventSender eventSender,
+        PlayerController playerController)
+    {
+        NpcDialogueUI dialogueUI = CreateNpcDialogueUi(
+            eventSender,
+            playerController
+        );
+
+        GameObject npc = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+        npc.name = "ForestFriendNPC";
+        npc.transform.position = new Vector3(-3f, 1f, 0f);
+        npc.GetComponent<Renderer>().sharedMaterial = material;
+
+        CapsuleCollider collider = npc.GetComponent<CapsuleCollider>();
+        collider.isTrigger = true;
+        collider.radius = 1.25f;
+        collider.height = 2.5f;
+
+        Rigidbody rigidbody = npc.AddComponent<Rigidbody>();
+        rigidbody.useGravity = false;
+        rigidbody.isKinematic = true;
+
+        NpcInteractionTrigger interaction =
+            npc.AddComponent<NpcInteractionTrigger>();
+        SerializedObject interactionObject = new SerializedObject(interaction);
+        SetObjectProperty(interactionObject, "dialogueUI", dialogueUI);
+        interactionObject.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static NpcDialogueUI CreateNpcDialogueUi(
+        GameEventSender eventSender,
+        PlayerController playerController)
+    {
+        GameObject canvasObject = new GameObject(
+            "NpcCanvas",
+            typeof(RectTransform),
+            typeof(Canvas),
+            typeof(CanvasScaler),
+            typeof(GraphicRaycaster)
+        );
+
+        Canvas canvas = canvasObject.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 10;
+
+        CanvasScaler canvasScaler = canvasObject.GetComponent<CanvasScaler>();
+        canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        canvasScaler.referenceResolution = new Vector2(1920f, 1080f);
+        canvasScaler.matchWidthOrHeight = 0.5f;
+
+        GameObject popupRoot = CreatePopupPanel(
+            "NpcDialoguePanel",
+            canvasObject.transform,
+            new Vector2(680f, 360f)
+        );
+        CreateText(
+            "Title",
+            popupRoot.transform,
+            "Orman Dostu",
+            34,
+            FontStyle.Bold,
+            new Vector2(600f, 50f),
+            new Vector2(0f, 120f)
+        );
+        CreateText(
+            "DialogueText",
+            popupRoot.transform,
+            "Işık tohumunu bulmama yardım eder misin?",
+            24,
+            FontStyle.Normal,
+            new Vector2(600f, 70f),
+            new Vector2(0f, 45f)
+        );
+
+        Button helpButton = CreateButton(
+            "HelpButton",
+            popupRoot.transform,
+            "Yardım Et",
+            new Vector2(-180f, -55f),
+            new Color(0.25f, 0.65f, 0.35f)
+        );
+        Button laterButton = CreateButton(
+            "LaterButton",
+            popupRoot.transform,
+            "Sonra",
+            new Vector2(0f, -55f),
+            new Color(0.38f, 0.5f, 0.72f)
+        );
+        Button closeButton = CreateButton(
+            "CloseButton",
+            popupRoot.transform,
+            "Kapat",
+            new Vector2(180f, -55f),
+            new Color(0.38f, 0.43f, 0.5f)
+        );
+
+        NpcDialogueUI dialogueUI = canvasObject.AddComponent<NpcDialogueUI>();
+        SerializedObject dialogueObject = new SerializedObject(dialogueUI);
+        SetStringProperty(dialogueObject, "childId", ChildId);
+        SetStringProperty(dialogueObject, "region", "isikli_vadi");
+        SetObjectProperty(dialogueObject, "eventSender", eventSender);
+        SetObjectProperty(dialogueObject, "playerController", playerController);
+        SetObjectProperty(dialogueObject, "popupRoot", popupRoot);
+        SetObjectProperty(dialogueObject, "helpButton", helpButton);
+        SetObjectProperty(dialogueObject, "laterButton", laterButton);
+        SetObjectProperty(dialogueObject, "closeButton", closeButton);
+        dialogueObject.ApplyModifiedPropertiesWithoutUndo();
+
+        popupRoot.SetActive(false);
+        return dialogueUI;
     }
 
     private static PuzzlePopupUI CreatePuzzlePopup(

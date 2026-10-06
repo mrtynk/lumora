@@ -52,9 +52,11 @@
     <Compile Include="Assets\Scripts\MemoryMatchPuzzleUI.cs" />
     <Compile Include="Assets\Scripts\GameEventSender.cs" />
     <Compile Include="Assets\Scripts\PlayerController.cs" />
+    <Compile Include="Assets\Scripts\NpcDialogueUI.cs" />
     <Compile Include="Assets\Scripts\PuzzleTrigger.cs" />
     <Compile Include="Assets\Scripts\HiddenObjectPuzzleUI.cs" />
     <Compile Include="Assets\Scripts\PuzzlePopupUI.cs" />
+    <Compile Include="Assets\Scripts\NpcInteractionTrigger.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
