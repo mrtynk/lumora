@@ -49,7 +49,7 @@ public static class LumoraPrototypeSceneBuilder
         );
         Material treeCrownMaterial = GetOrCreateMaterial(
             "Assets/Materials/LightTreeCrownMaterial.mat",
-            new Color(0.65f, 0.9f, 0.35f)
+            new Color(0.28f, 0.36f, 0.24f)
         );
         Material rewardMaterial = GetOrCreateMaterial(
             "Assets/Materials/LightSeedRewardMaterial.mat",
@@ -58,6 +58,7 @@ public static class LumoraPrototypeSceneBuilder
 
         CreateGround(groundMaterial);
         GameObject player = CreatePlayer();
+        PlayerController playerController = player.GetComponent<PlayerController>();
         GameEventSender eventSender = CreateGameManager();
         DemoFlowController demoFlow = CreateDemoFlow(
             eventSender,
@@ -65,16 +66,17 @@ public static class LumoraPrototypeSceneBuilder
             treeCrownMaterial,
             rewardMaterial
         );
+        CreateStoryIntro(playerController);
         PuzzlePopupUI puzzlePopup = CreatePuzzlePopup(
             eventSender,
-            player.GetComponent<PlayerController>(),
+            playerController,
             demoFlow
         );
         CreatePuzzlePaper(puzzleMaterial, puzzlePopup);
         CreateNpc(
             npcMaterial,
             eventSender,
-            player.GetComponent<PlayerController>(),
+            playerController,
             demoFlow
         );
         CreateOrConfigureMainCamera();
@@ -255,6 +257,97 @@ public static class LumoraPrototypeSceneBuilder
         flowObject.ApplyModifiedPropertiesWithoutUndo();
 
         return demoFlow;
+    }
+
+    private static void CreateStoryIntro(PlayerController playerController)
+    {
+        GameObject canvasObject = new GameObject(
+            "StoryIntroCanvas",
+            typeof(RectTransform),
+            typeof(Canvas),
+            typeof(CanvasScaler),
+            typeof(GraphicRaycaster)
+        );
+
+        Canvas canvas = canvasObject.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 30;
+
+        CanvasScaler canvasScaler = canvasObject.GetComponent<CanvasScaler>();
+        canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        canvasScaler.referenceResolution = new Vector2(1920f, 1080f);
+        canvasScaler.matchWidthOrHeight = 0.5f;
+
+        GameObject introRoot = CreateUiObject(
+            "StoryIntroRoot",
+            canvasObject.transform
+        );
+        RectTransform rootRect = introRoot.GetComponent<RectTransform>();
+        rootRect.anchorMin = Vector2.zero;
+        rootRect.anchorMax = Vector2.one;
+        rootRect.offsetMin = Vector2.zero;
+        rootRect.offsetMax = Vector2.zero;
+
+        Image backdrop = introRoot.AddComponent<Image>();
+        backdrop.color = new Color(0.02f, 0.04f, 0.08f, 0.92f);
+
+        GameObject storyPanel = CreatePopupPanel(
+            "StoryPanel",
+            introRoot.transform,
+            new Vector2(900f, 520f)
+        );
+
+        CreateText(
+            "Title",
+            storyPanel.transform,
+            "Lumora Karardı",
+            44,
+            FontStyle.Bold,
+            new Vector2(800f, 65f),
+            new Vector2(0f, 185f)
+        );
+        CreateText(
+            "StoryText",
+            storyPanel.transform,
+            "Işık Ağacı gücünü kaybetti. Işık tohumları dört farklı " +
+            "bölgeye dağıldı. İlk ışık tohumu Işıklı Vadi'de saklı. " +
+            "Onu bul ve Lumora'ya ışığı geri getir.",
+            27,
+            FontStyle.Normal,
+            new Vector2(780f, 170f),
+            new Vector2(0f, 65f)
+        );
+
+        Text objectiveText = CreateText(
+            "ObjectiveText",
+            storyPanel.transform,
+            "İlk hedef: Işıklı Vadi'deki ışık tohumunu bul.",
+            25,
+            FontStyle.Bold,
+            new Vector2(780f, 65f),
+            new Vector2(0f, -70f)
+        );
+        objectiveText.color = new Color(1f, 0.82f, 0.28f);
+
+        Button startButton = CreateButton(
+            "StartAdventureButton",
+            storyPanel.transform,
+            "Göreve Başla",
+            new Vector2(0f, -175f),
+            new Color(0.25f, 0.65f, 0.35f)
+        );
+        RectTransform buttonRect = startButton.GetComponent<RectTransform>();
+        buttonRect.sizeDelta = new Vector2(220f, 64f);
+        RectTransform buttonTextRect =
+            startButton.GetComponentInChildren<Text>().rectTransform;
+        buttonTextRect.sizeDelta = new Vector2(220f, 64f);
+
+        StoryIntroUI storyIntro = canvasObject.AddComponent<StoryIntroUI>();
+        SerializedObject introObject = new SerializedObject(storyIntro);
+        SetObjectProperty(introObject, "playerController", playerController);
+        SetObjectProperty(introObject, "introRoot", introRoot);
+        SetObjectProperty(introObject, "startButton", startButton);
+        introObject.ApplyModifiedPropertiesWithoutUndo();
     }
 
     private static void CreateNpc(

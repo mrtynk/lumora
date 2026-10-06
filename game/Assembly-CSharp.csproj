@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Scripts\PatternPuzzleUI.cs" />
+    <Compile Include="Assets\Scripts\StoryIntroUI.cs" />
     <Compile Include="Assets\Scripts\MemoryMatchPuzzleUI.cs" />
     <Compile Include="Assets\Scripts\GameEventSender.cs" />
     <Compile Include="Assets\Scripts\DemoFlowController.cs" />
