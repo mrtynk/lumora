@@ -12,6 +12,16 @@ public static class LumoraPrototypeSceneBuilder
     private const string ScenePath = "Assets/Scenes/PrototypeScene.unity";
     private const string EventEndpoint = "http://localhost:5000/api/events";
     private const string ChildId = "demo-child-001";
+    private const string MainMenuConceptPath =
+        "Assets/LumoraAssets/UI/main_menu_concept.png";
+    private const string MaleCharacterPath =
+        "Assets/LumoraAssets/Characters/erkek_tam_boy.png";
+    private const string FemaleCharacterPath =
+        "Assets/LumoraAssets/Characters/kiz_tam_boy.png";
+    private const string MaleIntroVideoPath =
+        "Assets/LumoraAssets/Videos/erkek_intro.mp4";
+    private const string FemaleIntroVideoPath =
+        "Assets/LumoraAssets/Videos/kiz_intro.mp4";
 
     [MenuItem("Tools/Lumora/Build Prototype Scene")]
     public static void BuildPrototypeScene()
@@ -25,6 +35,19 @@ public static class LumoraPrototypeSceneBuilder
         EnsureFolder("Assets/Scenes");
         EnsureFolder("Assets/Materials");
         EnsureFolder("Assets/UI");
+
+        if (!ConfigureUiTextureImports())
+        {
+            return;
+        }
+
+        if (!TryLoadMenuAssets(
+                out Texture2D mainMenuTexture,
+                out Texture2D maleCharacterTexture,
+                out Texture2D femaleCharacterTexture))
+        {
+            return;
+        }
 
         Scene scene = EditorSceneManager.NewScene(
             NewSceneSetup.EmptyScene,
@@ -102,7 +125,14 @@ public static class LumoraPrototypeSceneBuilder
             portalLockedMaterial,
             portalOpenMaterial
         );
-        CreateStoryIntro(playerController);
+        StoryIntroUI storyIntro = CreateStoryIntro(playerController);
+        CreateMainMenuFlow(
+            playerController,
+            storyIntro,
+            mainMenuTexture,
+            maleCharacterTexture,
+            femaleCharacterTexture
+        );
         PuzzlePopupUI puzzlePopup = CreatePuzzlePopup(
             eventSender,
             playerController,
@@ -130,6 +160,131 @@ public static class LumoraPrototypeSceneBuilder
         AssetDatabase.Refresh();
 
         Debug.Log("Lumora prototype scene created successfully.");
+    }
+
+    private static bool TryLoadMenuAssets(
+        out Texture2D mainMenuTexture,
+        out Texture2D maleCharacterTexture,
+        out Texture2D femaleCharacterTexture)
+    {
+        mainMenuTexture = null;
+        maleCharacterTexture = null;
+        femaleCharacterTexture = null;
+
+        string[] requiredAssetPaths =
+        {
+            MainMenuConceptPath,
+            MaleCharacterPath,
+            FemaleCharacterPath,
+            MaleIntroVideoPath,
+            FemaleIntroVideoPath
+        };
+
+        bool hasMissingAsset = false;
+        foreach (string assetPath in requiredAssetPaths)
+        {
+            if (AssetDatabase.LoadMainAssetAtPath(assetPath) == null)
+            {
+                Debug.LogError("Zorunlu Lumora asseti bulunamadı: " + assetPath);
+                hasMissingAsset = true;
+            }
+        }
+
+        if (hasMissingAsset)
+        {
+            Debug.LogError(
+                "PrototypeScene kurulmadı. Eksik Lumora assetlerini ekleyip " +
+                "yeniden deneyin."
+            );
+            return false;
+        }
+
+        mainMenuTexture =
+            AssetDatabase.LoadAssetAtPath<Texture2D>(MainMenuConceptPath);
+        maleCharacterTexture =
+            AssetDatabase.LoadAssetAtPath<Texture2D>(MaleCharacterPath);
+        femaleCharacterTexture =
+            AssetDatabase.LoadAssetAtPath<Texture2D>(FemaleCharacterPath);
+
+        return mainMenuTexture != null &&
+               maleCharacterTexture != null &&
+               femaleCharacterTexture != null;
+    }
+
+    private static bool ConfigureUiTextureImports()
+    {
+        bool menuConfigured = ConfigureUiTextureImport(
+            MainMenuConceptPath,
+            false
+        );
+        bool maleConfigured = ConfigureUiTextureImport(
+            MaleCharacterPath,
+            true
+        );
+        bool femaleConfigured = ConfigureUiTextureImport(
+            FemaleCharacterPath,
+            true
+        );
+
+        return menuConfigured && maleConfigured && femaleConfigured;
+    }
+
+    private static bool ConfigureUiTextureImport(
+        string assetPath,
+        bool alphaIsTransparency)
+    {
+        TextureImporter importer =
+            AssetImporter.GetAtPath(assetPath) as TextureImporter;
+        if (importer == null)
+        {
+            Debug.LogError(
+                "UI görseli için TextureImporter bulunamadı: " + assetPath
+            );
+            return false;
+        }
+
+        importer.textureType = TextureImporterType.Sprite;
+        importer.spriteImportMode = SpriteImportMode.Single;
+        importer.mipmapEnabled = false;
+        importer.streamingMipmaps = false;
+        importer.textureCompression = TextureImporterCompression.Uncompressed;
+        importer.crunchedCompression = false;
+        importer.compressionQuality = 100;
+        importer.maxTextureSize = 4096;
+        importer.npotScale = TextureImporterNPOTScale.None;
+        importer.sRGBTexture = true;
+        importer.alphaIsTransparency = alphaIsTransparency;
+        importer.isReadable = false;
+        importer.filterMode = FilterMode.Bilinear;
+        importer.anisoLevel = 1;
+        importer.wrapMode = TextureWrapMode.Clamp;
+
+        ConfigureTexturePlatform(importer, "DefaultTexturePlatform", false);
+        ConfigureTexturePlatform(importer, "Standalone", true);
+        ConfigureTexturePlatform(importer, "Android", true);
+        importer.SaveAndReimport();
+        return true;
+    }
+
+    private static void ConfigureTexturePlatform(
+        TextureImporter importer,
+        string platformName,
+        bool overridden)
+    {
+        TextureImporterPlatformSettings settings =
+            importer.GetPlatformTextureSettings(platformName);
+        settings.name = platformName;
+        settings.overridden = overridden;
+        settings.maxTextureSize = 4096;
+        settings.resizeAlgorithm = TextureResizeAlgorithm.Mitchell;
+        settings.textureCompression = TextureImporterCompression.Uncompressed;
+        settings.compressionQuality = 100;
+        settings.crunchedCompression = false;
+        settings.allowsAlphaSplitting = false;
+        settings.format = overridden
+            ? TextureImporterFormat.RGBA32
+            : TextureImporterFormat.Automatic;
+        importer.SetPlatformTextureSettings(settings);
     }
 
     private static GameObject CreateGround(
@@ -559,7 +714,8 @@ public static class LumoraPrototypeSceneBuilder
         return demoFlow;
     }
 
-    private static void CreateStoryIntro(PlayerController playerController)
+    private static StoryIntroUI CreateStoryIntro(
+        PlayerController playerController)
     {
         GameObject canvasObject = new GameObject(
             "StoryIntroCanvas",
@@ -647,7 +803,185 @@ public static class LumoraPrototypeSceneBuilder
         SetObjectProperty(introObject, "playerController", playerController);
         SetObjectProperty(introObject, "introRoot", introRoot);
         SetObjectProperty(introObject, "startButton", startButton);
+        SetBooleanProperty(introObject, "showOnStart", false);
         introObject.ApplyModifiedPropertiesWithoutUndo();
+
+        introRoot.SetActive(false);
+        return storyIntro;
+    }
+
+    private static void CreateMainMenuFlow(
+        PlayerController playerController,
+        StoryIntroUI storyIntro,
+        Texture2D mainMenuTexture,
+        Texture2D maleCharacterTexture,
+        Texture2D femaleCharacterTexture)
+    {
+        GameObject mainMenuCanvas = new GameObject(
+            "MainMenuCanvas",
+            typeof(RectTransform),
+            typeof(Canvas),
+            typeof(CanvasScaler),
+            typeof(GraphicRaycaster)
+        );
+        Vector2 menuReferenceResolution = new Vector2(
+            mainMenuTexture.width,
+            mainMenuTexture.height
+        );
+        ConfigureOverlayCanvas(mainMenuCanvas, 50, menuReferenceResolution);
+
+        GameObject menuRoot = CreateFullScreenUiObject(
+            "MainMenuRoot",
+            mainMenuCanvas.transform
+        );
+        Image menuFallback = menuRoot.AddComponent<Image>();
+        menuFallback.color = new Color(0.04f, 0.12f, 0.12f, 1f);
+        menuFallback.raycastTarget = false;
+
+        RawImage mainMenuConcept = CreateAspectFittedRawImage(
+            "MainMenuConcept",
+            menuRoot.transform,
+            mainMenuTexture,
+            menuReferenceResolution,
+            Vector2.zero
+        );
+
+        Button startButton = CreateAnchoredTransparentButton(
+            "StartButton",
+            mainMenuConcept.transform,
+            new Vector2(0.581f, 0.48f),
+            new Vector2(0.851f, 0.644f)
+        );
+        Button continueButton = CreateAnchoredTransparentButton(
+            "ContinueButton",
+            mainMenuConcept.transform,
+            new Vector2(0.584f, 0.312f),
+            new Vector2(0.851f, 0.456f)
+        );
+        Button settingsButton = CreateAnchoredTransparentButton(
+            "SettingsButton",
+            mainMenuConcept.transform,
+            new Vector2(0.581f, 0.124f),
+            new Vector2(0.853f, 0.284f)
+        );
+
+        float menuScaleX = mainMenuTexture.width / 1920f;
+        float menuScaleY = mainMenuTexture.height / 1080f;
+        Text informationText = CreateText(
+            "InformationText",
+            menuRoot.transform,
+            string.Empty,
+            Mathf.Max(6, Mathf.RoundToInt(23f * menuScaleY)),
+            FontStyle.Bold,
+            new Vector2(760f * menuScaleX, 65f * menuScaleY),
+            new Vector2(430f * menuScaleX, -455f * menuScaleY)
+        );
+        informationText.color = new Color(1f, 0.94f, 0.68f);
+        informationText.raycastTarget = false;
+
+        GameObject characterSelectCanvas = new GameObject(
+            "CharacterSelectCanvas",
+            typeof(RectTransform),
+            typeof(Canvas),
+            typeof(CanvasScaler),
+            typeof(GraphicRaycaster)
+        );
+        ConfigureOverlayCanvas(
+            characterSelectCanvas,
+            55,
+            new Vector2(1920f, 1080f)
+        );
+
+        GameObject selectionRoot = CreateFullScreenUiObject(
+            "CharacterSelectRoot",
+            characterSelectCanvas.transform
+        );
+        Image selectionBackdrop = selectionRoot.AddComponent<Image>();
+        selectionBackdrop.color = new Color(0.05f, 0.16f, 0.15f, 1f);
+
+        CreateText(
+            "Title",
+            selectionRoot.transform,
+            "Karakterini Seç",
+            46,
+            FontStyle.Bold,
+            new Vector2(900f, 70f),
+            new Vector2(0f, 455f)
+        );
+        CreateText(
+            "Description",
+            selectionRoot.transform,
+            "Lumora macerasına kiminle başlayacaksın?",
+            27,
+            FontStyle.Normal,
+            new Vector2(900f, 55f),
+            new Vector2(0f, 395f)
+        );
+
+        Button maleButton = CreateCharacterCard(
+            "MaleCharacterButton",
+            selectionRoot.transform,
+            maleCharacterTexture,
+            "Erkek Karakter",
+            new Vector2(-300f, 10f),
+            new Color(0.17f, 0.38f, 0.42f, 1f)
+        );
+        Button femaleButton = CreateCharacterCard(
+            "FemaleCharacterButton",
+            selectionRoot.transform,
+            femaleCharacterTexture,
+            "Kız Karakter",
+            new Vector2(300f, 10f),
+            new Color(0.35f, 0.25f, 0.4f, 1f)
+        );
+        Button backButton = CreateSizedButton(
+            "BackButton",
+            selectionRoot.transform,
+            "Geri",
+            new Vector2(210f, 65f),
+            new Vector2(0f, -445f),
+            new Color(0.36f, 0.43f, 0.46f, 1f)
+        );
+
+        MainMenuUI mainMenu = mainMenuCanvas.AddComponent<MainMenuUI>();
+        CharacterSelectionUI characterSelection =
+            characterSelectCanvas.AddComponent<CharacterSelectionUI>();
+
+        SerializedObject mainMenuObject = new SerializedObject(mainMenu);
+        SetObjectProperty(
+            mainMenuObject,
+            "playerController",
+            playerController
+        );
+        SetObjectProperty(mainMenuObject, "menuRoot", menuRoot);
+        SetObjectProperty(
+            mainMenuObject,
+            "characterSelectionUI",
+            characterSelection
+        );
+        SetObjectProperty(mainMenuObject, "startButton", startButton);
+        SetObjectProperty(mainMenuObject, "continueButton", continueButton);
+        SetObjectProperty(mainMenuObject, "settingsButton", settingsButton);
+        SetObjectProperty(mainMenuObject, "informationText", informationText);
+        mainMenuObject.ApplyModifiedPropertiesWithoutUndo();
+
+        SerializedObject selectionObject =
+            new SerializedObject(characterSelection);
+        SetObjectProperty(
+            selectionObject,
+            "playerController",
+            playerController
+        );
+        SetObjectProperty(selectionObject, "selectionRoot", selectionRoot);
+        SetObjectProperty(selectionObject, "mainMenuUI", mainMenu);
+        SetObjectProperty(selectionObject, "storyIntroUI", storyIntro);
+        SetObjectProperty(selectionObject, "maleButton", maleButton);
+        SetObjectProperty(selectionObject, "femaleButton", femaleButton);
+        SetObjectProperty(selectionObject, "backButton", backButton);
+        selectionObject.ApplyModifiedPropertiesWithoutUndo();
+
+        menuRoot.SetActive(true);
+        characterSelectCanvas.SetActive(false);
     }
 
     private static void CreateNpc(
@@ -1144,6 +1478,175 @@ public static class LumoraPrototypeSceneBuilder
         popupRoot.SetActive(false);
         CreateEventSystem();
         return popup;
+    }
+
+    private static void ConfigureOverlayCanvas(
+        GameObject canvasObject,
+        int sortingOrder,
+        Vector2 referenceResolution)
+    {
+        Canvas canvas = canvasObject.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = sortingOrder;
+        canvas.pixelPerfect = true;
+
+        CanvasScaler canvasScaler = canvasObject.GetComponent<CanvasScaler>();
+        canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        canvasScaler.referenceResolution = referenceResolution;
+        canvasScaler.screenMatchMode =
+            CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        canvasScaler.matchWidthOrHeight = 0.5f;
+        canvasScaler.referencePixelsPerUnit = 100f;
+    }
+
+    private static GameObject CreateFullScreenUiObject(
+        string name,
+        Transform parent)
+    {
+        GameObject uiObject = CreateUiObject(name, parent);
+        RectTransform rectTransform = uiObject.GetComponent<RectTransform>();
+        rectTransform.anchorMin = Vector2.zero;
+        rectTransform.anchorMax = Vector2.one;
+        rectTransform.offsetMin = Vector2.zero;
+        rectTransform.offsetMax = Vector2.zero;
+        return uiObject;
+    }
+
+    private static RawImage CreateAspectFittedRawImage(
+        string name,
+        Transform parent,
+        Texture2D texture,
+        Vector2 areaSize,
+        Vector2 position)
+    {
+        GameObject imageArea = CreateUiObject(name + "Area", parent);
+        SetCenteredRect(
+            imageArea.GetComponent<RectTransform>(),
+            areaSize,
+            position
+        );
+
+        GameObject imageObject = CreateUiObject(name, imageArea.transform);
+        RawImage rawImage = imageObject.AddComponent<RawImage>();
+        rawImage.texture = texture;
+        rawImage.color = Color.white;
+        rawImage.raycastTarget = false;
+        rawImage.uvRect = new Rect(0f, 0f, 1f, 1f);
+
+        AspectRatioFitter aspectFitter =
+            imageObject.AddComponent<AspectRatioFitter>();
+        aspectFitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+        aspectFitter.aspectRatio = (float)texture.width / texture.height;
+        return rawImage;
+    }
+
+    private static Button CreateAnchoredTransparentButton(
+        string name,
+        Transform parent,
+        Vector2 anchorMin,
+        Vector2 anchorMax)
+    {
+        GameObject buttonObject = CreateUiObject(name, parent);
+        RectTransform buttonRect = buttonObject.GetComponent<RectTransform>();
+        buttonRect.anchorMin = anchorMin;
+        buttonRect.anchorMax = anchorMax;
+        buttonRect.offsetMin = Vector2.zero;
+        buttonRect.offsetMax = Vector2.zero;
+
+        Image image = buttonObject.AddComponent<Image>();
+        image.color = new Color(1f, 1f, 1f, 0.01f);
+        Button button = buttonObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        return button;
+    }
+
+    private static Button CreateCharacterCard(
+        string name,
+        Transform parent,
+        Texture2D characterTexture,
+        string label,
+        Vector2 position,
+        Color color)
+    {
+        GameObject cardObject = CreateUiObject(name, parent);
+        SetCenteredRect(
+            cardObject.GetComponent<RectTransform>(),
+            new Vector2(430f, 740f),
+            position
+        );
+
+        Image cardImage = cardObject.AddComponent<Image>();
+        cardImage.color = color;
+        Button button = cardObject.AddComponent<Button>();
+        button.targetGraphic = cardImage;
+
+        CreateAspectFittedRawImage(
+            "CharacterImage",
+            cardObject.transform,
+            characterTexture,
+            GetNativeSizeWithin(
+                characterTexture,
+                new Vector2(350f, 600f)
+            ),
+            new Vector2(0f, 38f)
+        );
+        Text labelText = CreateText(
+            "CharacterLabel",
+            cardObject.transform,
+            label,
+            27,
+            FontStyle.Bold,
+            new Vector2(390f, 55f),
+            new Vector2(0f, -325f)
+        );
+        labelText.raycastTarget = false;
+        return button;
+    }
+
+    private static Vector2 GetNativeSizeWithin(
+        Texture2D texture,
+        Vector2 maximumSize)
+    {
+        Vector2 nativeSize = new Vector2(texture.width, texture.height);
+        float fitScale = Mathf.Min(
+            maximumSize.x / nativeSize.x,
+            maximumSize.y / nativeSize.y
+        );
+        fitScale = Mathf.Min(1f, fitScale);
+        return nativeSize * fitScale;
+    }
+
+    private static Button CreateSizedButton(
+        string name,
+        Transform parent,
+        string label,
+        Vector2 size,
+        Vector2 position,
+        Color color)
+    {
+        GameObject buttonObject = CreateUiObject(name, parent);
+        SetCenteredRect(
+            buttonObject.GetComponent<RectTransform>(),
+            size,
+            position
+        );
+
+        Image image = buttonObject.AddComponent<Image>();
+        image.color = color;
+        Button button = buttonObject.AddComponent<Button>();
+        button.targetGraphic = image;
+
+        Text buttonText = CreateText(
+            "Text",
+            buttonObject.transform,
+            label,
+            23,
+            FontStyle.Bold,
+            size,
+            Vector2.zero
+        );
+        buttonText.raycastTarget = false;
+        return button;
     }
 
     private static GameObject CreatePopupPanel(

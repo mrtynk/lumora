@@ -7,6 +7,7 @@ public class StoryIntroUI : MonoBehaviour
     [SerializeField] private PlayerController playerController;
     [SerializeField] private GameObject introRoot;
     [SerializeField] private Button startButton;
+    [SerializeField] private bool showOnStart = true;
 
     private bool introCompleted;
 
@@ -29,7 +30,14 @@ public class StoryIntroUI : MonoBehaviour
         }
 
         introCompleted = false;
-        SetIntroVisible(true);
+        if (showOnStart)
+        {
+            ShowIntro();
+        }
+        else
+        {
+            introRoot.SetActive(false);
+        }
     }
 
     private void OnDestroy()
@@ -38,6 +46,19 @@ public class StoryIntroUI : MonoBehaviour
         {
             startButton.onClick.RemoveListener(BeginAdventure);
         }
+    }
+
+    public void ShowIntro()
+    {
+        if (!HasRequiredReferences())
+        {
+            Debug.LogError("StoryIntroUI bağlantıları eksik.");
+            return;
+        }
+
+        introCompleted = false;
+        startButton.interactable = true;
+        SetIntroVisible(true);
     }
 
     private void BeginAdventure()
