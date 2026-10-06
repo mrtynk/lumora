@@ -55,16 +55,52 @@ public static class LumoraPrototypeSceneBuilder
             "Assets/Materials/LightSeedRewardMaterial.mat",
             new Color(1f, 0.78f, 0.15f)
         );
+        Material mistyForestMaterial = GetOrCreateMaterial(
+            "Assets/Materials/MistyForestGroundMaterial.mat",
+            new Color(0.24f, 0.34f, 0.28f)
+        );
+        Material crystalCaveMaterial = GetOrCreateMaterial(
+            "Assets/Materials/CrystalCaveGroundMaterial.mat",
+            new Color(0.28f, 0.34f, 0.58f)
+        );
+        Material darkHillMaterial = GetOrCreateMaterial(
+            "Assets/Materials/DarkHillGroundMaterial.mat",
+            new Color(0.2f, 0.18f, 0.28f)
+        );
+        Material portalLockedMaterial = GetOrCreateMaterial(
+            "Assets/Materials/PortalLockedMaterial.mat",
+            new Color(0.32f, 0.34f, 0.4f)
+        );
+        Material portalOpenMaterial = GetOrCreateMaterial(
+            "Assets/Materials/PortalOpenMaterial.mat",
+            new Color(0.28f, 0.8f, 1f)
+        );
 
-        CreateGround(groundMaterial);
+        Material[] regionMaterials =
+        {
+            groundMaterial,
+            mistyForestMaterial,
+            crystalCaveMaterial,
+            darkHillMaterial
+        };
+
         GameObject player = CreatePlayer();
         PlayerController playerController = player.GetComponent<PlayerController>();
         GameEventSender eventSender = CreateGameManager();
+        Camera mainCamera = CreateOrConfigureMainCamera();
         DemoFlowController demoFlow = CreateDemoFlow(
-            eventSender,
             treeTrunkMaterial,
-            treeCrownMaterial,
-            rewardMaterial
+            treeCrownMaterial
+        );
+        CreateRegionSystem(
+            eventSender,
+            player.transform,
+            mainCamera,
+            demoFlow.gameObject,
+            regionMaterials,
+            rewardMaterial,
+            portalLockedMaterial,
+            portalOpenMaterial
         );
         CreateStoryIntro(playerController);
         PuzzlePopupUI puzzlePopup = CreatePuzzlePopup(
@@ -79,7 +115,6 @@ public static class LumoraPrototypeSceneBuilder
             playerController,
             demoFlow
         );
-        CreateOrConfigureMainCamera();
         CreateDirectionalLight();
 
         EditorSceneManager.MarkSceneDirty(scene);
@@ -97,13 +132,17 @@ public static class LumoraPrototypeSceneBuilder
         Debug.Log("Lumora prototype scene created successfully.");
     }
 
-    private static void CreateGround(Material material)
+    private static GameObject CreateGround(
+        string name,
+        Vector3 position,
+        Material material)
     {
         GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
-        ground.name = "Ground";
-        ground.transform.position = Vector3.zero;
-        ground.transform.localScale = new Vector3(3f, 1f, 3f);
+        ground.name = name;
+        ground.transform.position = position;
+        ground.transform.localScale = new Vector3(1.6f, 1f, 1.6f);
         ground.GetComponent<Renderer>().sharedMaterial = material;
+        return ground;
     }
 
     private static GameObject CreatePlayer()
@@ -143,6 +182,279 @@ public static class LumoraPrototypeSceneBuilder
         return eventSender;
     }
 
+    private static void CreateRegionSystem(
+        GameEventSender eventSender,
+        Transform player,
+        Camera mainCamera,
+        GameObject regionOneGuide,
+        Material[] regionMaterials,
+        Material seedMaterial,
+        Material portalLockedMaterial,
+        Material portalOpenMaterial)
+    {
+        GameObject canvasObject = new GameObject(
+            "RegionProgressCanvas",
+            typeof(RectTransform),
+            typeof(Canvas),
+            typeof(CanvasScaler),
+            typeof(GraphicRaycaster)
+        );
+
+        Canvas canvas = canvasObject.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 4;
+
+        CanvasScaler canvasScaler = canvasObject.GetComponent<CanvasScaler>();
+        canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        canvasScaler.referenceResolution = new Vector2(1920f, 1080f);
+        canvasScaler.matchWidthOrHeight = 0.5f;
+
+        GameObject progressPanel = CreateUiObject(
+            "RegionProgressPanel",
+            canvasObject.transform
+        );
+        RectTransform progressRect = progressPanel.GetComponent<RectTransform>();
+        progressRect.anchorMin = new Vector2(0f, 1f);
+        progressRect.anchorMax = new Vector2(0f, 1f);
+        progressRect.pivot = new Vector2(0f, 1f);
+        progressRect.sizeDelta = new Vector2(520f, 300f);
+        progressRect.anchoredPosition = new Vector2(20f, -20f);
+
+        Image progressImage = progressPanel.AddComponent<Image>();
+        progressImage.color = new Color(0.08f, 0.12f, 0.18f, 0.9f);
+        progressImage.raycastTarget = false;
+
+        Text activeRegionText = CreateText(
+            "ActiveRegionText",
+            progressPanel.transform,
+            "Aktif Bölge: Işıklı Vadi",
+            27,
+            FontStyle.Bold,
+            new Vector2(470f, 42f),
+            new Vector2(0f, 115f)
+        );
+        Text seedCountText = CreateText(
+            "SeedCountText",
+            progressPanel.transform,
+            "Işık Tohumu: 0 / 4",
+            23,
+            FontStyle.Normal,
+            new Vector2(470f, 38f),
+            new Vector2(0f, 75f)
+        );
+        Text portalStatusText = CreateText(
+            "PortalStatusText",
+            progressPanel.transform,
+            "Portal: Kilitli",
+            23,
+            FontStyle.Normal,
+            new Vector2(470f, 38f),
+            new Vector2(0f, 37f)
+        );
+        Text objectiveText = CreateText(
+            "ObjectiveText",
+            progressPanel.transform,
+            "Hedef: Bu bölgedeki ışık tohumunu bul.",
+            21,
+            FontStyle.Bold,
+            new Vector2(470f, 55f),
+            new Vector2(0f, -15f)
+        );
+        Text notificationText = CreateText(
+            "NotificationText",
+            progressPanel.transform,
+            "Bu bölgedeki ışık tohumunu bul ve portalı aç.",
+            20,
+            FontStyle.Normal,
+            new Vector2(470f, 80f),
+            new Vector2(0f, -95f)
+        );
+
+        Text[] progressTexts =
+        {
+            activeRegionText,
+            seedCountText,
+            portalStatusText,
+            objectiveText,
+            notificationText
+        };
+        foreach (Text progressText in progressTexts)
+        {
+            progressText.alignment = TextAnchor.MiddleLeft;
+            progressText.raycastTarget = false;
+        }
+
+        RegionProgressController progressController =
+            canvasObject.AddComponent<RegionProgressController>();
+        Transform[] spawnPoints = new Transform[4];
+        LightSeedCollectible[] lightSeeds = new LightSeedCollectible[4];
+        PortalTrigger[] portals = new PortalTrigger[4];
+
+        string[] regionObjectNames =
+        {
+            "Region1_IsikliVadi",
+            "Region2_SisliOrman",
+            "Region3_KristalMagara",
+            "Region4_KaranlikTepe"
+        };
+
+        for (int i = 0; i < regionObjectNames.Length; i++)
+        {
+            Vector3 center = new Vector3(i * 24f, 0f, 0f);
+            GameObject regionRoot = new GameObject(regionObjectNames[i]);
+
+            GameObject ground = CreateGround(
+                i == 0 ? "Ground" : regionObjectNames[i] + "_Ground",
+                center,
+                regionMaterials[i]
+            );
+            ground.transform.SetParent(regionRoot.transform);
+
+            GameObject spawnPoint = new GameObject("PlayerSpawnPoint");
+            spawnPoint.transform.SetParent(regionRoot.transform);
+            spawnPoint.transform.position = center + new Vector3(-5f, 1f, 0f);
+            spawnPoints[i] = spawnPoint.transform;
+
+            GameObject seed = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            seed.name = "LightSeed_" + (i + 1);
+            seed.transform.SetParent(regionRoot.transform);
+            seed.transform.position = center + new Vector3(0f, 0.75f, 3.2f);
+            seed.transform.localScale = new Vector3(0.7f, 1f, 0.7f);
+            seed.GetComponent<Renderer>().sharedMaterial = seedMaterial;
+
+            SphereCollider seedCollider = seed.GetComponent<SphereCollider>();
+            seedCollider.isTrigger = true;
+            Rigidbody seedRigidbody = seed.AddComponent<Rigidbody>();
+            seedRigidbody.useGravity = false;
+            seedRigidbody.isKinematic = true;
+
+            LightSeedCollectible collectible =
+                seed.AddComponent<LightSeedCollectible>();
+            SerializedObject seedObject = new SerializedObject(collectible);
+            SetObjectProperty(
+                seedObject,
+                "progressController",
+                progressController
+            );
+            SetIntegerProperty(seedObject, "regionIndex", i);
+            seedObject.ApplyModifiedPropertiesWithoutUndo();
+            lightSeeds[i] = collectible;
+
+            GameObject portal = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            portal.name = i == regionObjectNames.Length - 1
+                ? "FinalLightGoal"
+                : "PortalToRegion" + (i + 2);
+            portal.transform.SetParent(regionRoot.transform);
+            portal.transform.position = center + new Vector3(6f, 1.4f, 0f);
+            portal.transform.localScale = new Vector3(0.6f, 2.8f, 3.2f);
+            Renderer portalRenderer = portal.GetComponent<Renderer>();
+            portalRenderer.sharedMaterial = portalLockedMaterial;
+
+            BoxCollider portalTriggerCollider = portal.GetComponent<BoxCollider>();
+            portalTriggerCollider.isTrigger = true;
+            portalTriggerCollider.size = new Vector3(2f, 1.2f, 1.2f);
+            Rigidbody portalRigidbody = portal.AddComponent<Rigidbody>();
+            portalRigidbody.useGravity = false;
+            portalRigidbody.isKinematic = true;
+
+            GameObject barrier = new GameObject("PortalBarrier");
+            barrier.transform.SetParent(portal.transform, false);
+            BoxCollider barrierCollider = barrier.AddComponent<BoxCollider>();
+            barrierCollider.size = new Vector3(0.8f, 1f, 1f);
+
+            PortalTrigger portalTrigger = portal.AddComponent<PortalTrigger>();
+            SerializedObject portalObject = new SerializedObject(portalTrigger);
+            SetObjectProperty(
+                portalObject,
+                "progressController",
+                progressController
+            );
+            SetIntegerProperty(portalObject, "regionIndex", i);
+            SetBooleanProperty(
+                portalObject,
+                "isFinalPortal",
+                i == regionObjectNames.Length - 1
+            );
+            SetObjectProperty(portalObject, "portalRenderer", portalRenderer);
+            SetObjectProperty(portalObject, "blockingCollider", barrierCollider);
+            SetObjectProperty(
+                portalObject,
+                "lockedMaterial",
+                portalLockedMaterial
+            );
+            SetObjectProperty(
+                portalObject,
+                "openMaterial",
+                portalOpenMaterial
+            );
+            portalObject.ApplyModifiedPropertiesWithoutUndo();
+            portals[i] = portalTrigger;
+
+            CreateRegionDecorations(
+                regionRoot.transform,
+                center,
+                i,
+                regionMaterials[i]
+            );
+        }
+
+        SerializedObject progressObject =
+            new SerializedObject(progressController);
+        SetObjectProperty(progressObject, "eventSender", eventSender);
+        SetObjectProperty(progressObject, "player", player);
+        SetObjectProperty(progressObject, "mainCamera", mainCamera);
+        SetObjectArrayProperty(
+            progressObject,
+            "regionSpawnPoints",
+            spawnPoints
+        );
+        SetObjectArrayProperty(progressObject, "lightSeeds", lightSeeds);
+        SetObjectArrayProperty(progressObject, "portals", portals);
+        SetObjectProperty(progressObject, "regionOneGuide", regionOneGuide);
+        SetObjectProperty(progressObject, "activeRegionText", activeRegionText);
+        SetObjectProperty(progressObject, "seedCountText", seedCountText);
+        SetObjectProperty(progressObject, "portalStatusText", portalStatusText);
+        SetObjectProperty(progressObject, "objectiveText", objectiveText);
+        SetObjectProperty(progressObject, "notificationText", notificationText);
+        progressObject.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static void CreateRegionDecorations(
+        Transform parent,
+        Vector3 center,
+        int regionIndex,
+        Material material)
+    {
+        Vector3[] offsets =
+        {
+            new Vector3(-5.5f, 0f, -5.5f),
+            new Vector3(-5.5f, 0f, 5.5f),
+            new Vector3(4.8f, 0f, -5.2f)
+        };
+
+        foreach (Vector3 offset in offsets)
+        {
+            PrimitiveType primitiveType = regionIndex == 1
+                ? PrimitiveType.Cylinder
+                : regionIndex == 2
+                    ? PrimitiveType.Cube
+                    : PrimitiveType.Sphere;
+            GameObject decoration = GameObject.CreatePrimitive(primitiveType);
+            decoration.name = "RegionDecoration";
+            decoration.transform.SetParent(parent);
+            decoration.transform.position = center + offset + Vector3.up * 0.65f;
+            decoration.transform.localScale = regionIndex == 2
+                ? new Vector3(0.8f, 1.8f, 0.8f)
+                : regionIndex == 1
+                    ? new Vector3(0.7f, 1.3f, 0.7f)
+                    : new Vector3(1.2f, 1.2f, 1.2f);
+            decoration.transform.rotation = regionIndex == 2
+                ? Quaternion.Euler(0f, 35f, 35f)
+                : Quaternion.identity;
+            decoration.GetComponent<Renderer>().sharedMaterial = material;
+        }
+    }
+
     private static void CreatePuzzlePaper(Material material, PuzzlePopupUI puzzlePopup)
     {
         GameObject puzzlePaper = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -165,10 +477,8 @@ public static class LumoraPrototypeSceneBuilder
     }
 
     private static DemoFlowController CreateDemoFlow(
-        GameEventSender eventSender,
         Material trunkMaterial,
-        Material crownMaterial,
-        Material rewardMaterial)
+        Material crownMaterial)
     {
         GameObject environmentRoot = new GameObject("IsikliVadiEnvironment");
 
@@ -185,14 +495,6 @@ public static class LumoraPrototypeSceneBuilder
         crown.transform.position = new Vector3(0f, 3.4f, 5f);
         crown.transform.localScale = new Vector3(2.3f, 2f, 2.3f);
         crown.GetComponent<Renderer>().sharedMaterial = crownMaterial;
-
-        GameObject reward = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        reward.name = "LightSeedReward";
-        reward.transform.SetParent(environmentRoot.transform);
-        reward.transform.position = new Vector3(0f, 0.55f, 3.5f);
-        reward.transform.localScale = new Vector3(0.65f, 0.9f, 0.65f);
-        reward.GetComponent<Renderer>().sharedMaterial = rewardMaterial;
-        reward.SetActive(false);
 
         GameObject canvasObject = new GameObject(
             "DemoGuideCanvas",
@@ -229,7 +531,7 @@ public static class LumoraPrototypeSceneBuilder
         Text titleText = CreateText(
             "RegionTitle",
             guidePanel.transform,
-            "Işıklı Vadi",
+            "Opsiyonel Mini Görev",
             28,
             FontStyle.Bold,
             new Vector2(700f, 42f),
@@ -240,7 +542,7 @@ public static class LumoraPrototypeSceneBuilder
         Text instructionText = CreateText(
             "InstructionText",
             guidePanel.transform,
-            "PuzzlePaper'a git ve E'ye bas.",
+            "İstersen PuzzlePaper'daki mini görevleri deneyebilirsin.",
             22,
             FontStyle.Normal,
             new Vector2(700f, 55f),
@@ -251,9 +553,7 @@ public static class LumoraPrototypeSceneBuilder
         DemoFlowController demoFlow =
             canvasObject.AddComponent<DemoFlowController>();
         SerializedObject flowObject = new SerializedObject(demoFlow);
-        SetObjectProperty(flowObject, "eventSender", eventSender);
         SetObjectProperty(flowObject, "instructionText", instructionText);
-        SetObjectProperty(flowObject, "rewardObject", reward);
         flowObject.ApplyModifiedPropertiesWithoutUndo();
 
         return demoFlow;
@@ -941,7 +1241,7 @@ public static class LumoraPrototypeSceneBuilder
         eventSystemObject.transform.position = Vector3.zero;
     }
 
-    private static void CreateOrConfigureMainCamera()
+    private static Camera CreateOrConfigureMainCamera()
     {
         Camera camera = UnityEngine.Object.FindFirstObjectByType<Camera>();
         GameObject cameraObject;
@@ -961,6 +1261,7 @@ public static class LumoraPrototypeSceneBuilder
         cameraObject.tag = "MainCamera";
         cameraObject.transform.position = new Vector3(0f, 8f, -8f);
         cameraObject.transform.rotation = Quaternion.Euler(35f, 0f, 0f);
+        return camera;
     }
 
     private static void CreateDirectionalLight()
@@ -1103,6 +1404,38 @@ public static class LumoraPrototypeSceneBuilder
         }
 
         property.stringValue = value;
+    }
+
+    private static void SetIntegerProperty(
+        SerializedObject serializedObject,
+        string propertyName,
+        int value)
+    {
+        SerializedProperty property = serializedObject.FindProperty(propertyName);
+        if (property == null)
+        {
+            throw new InvalidOperationException(
+                "Serialized field was not found: " + propertyName
+            );
+        }
+
+        property.intValue = value;
+    }
+
+    private static void SetBooleanProperty(
+        SerializedObject serializedObject,
+        string propertyName,
+        bool value)
+    {
+        SerializedProperty property = serializedObject.FindProperty(propertyName);
+        if (property == null)
+        {
+            throw new InvalidOperationException(
+                "Serialized field was not found: " + propertyName
+            );
+        }
+
+        property.boolValue = value;
     }
 
     private static void SetObjectProperty(

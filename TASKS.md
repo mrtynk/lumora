@@ -8,7 +8,9 @@ Her görev ayrı branch/PR üzerinde ve yalnızca belirtilen kapsamda yapılır.
 
 Lumora; 5–7 yaş çocuklara yönelik, basit grafikli ve tamamlanabilir hikâye tabanlı bir 3D mobil macera oyunudur. Işık Ağacı gücünü kaybetmiş, dört ışık tohumu farklı bölgelere dağılmıştır. Oyuncu bölgeleri sırayla keşfeder, ana ışık tohumunu toplar ve bir sonraki bölgenin portalını açar.
 
-> Mevcut puzzle sistemleri ana oyun içinde oyun mantığında değil, gizli/opsiyonel mini görevler olarak kullanılacaktır. Ana oyun ilerleyişi 4 bölge, ışık tohumu toplama ve portal açma sistemi üzerine kurulacaktır.
+Oyunun başlangıç akışı: **Ana Menü → Karakter Seçimi → Seçilen Karaktere Göre Intro Animasyonu → Hikâye Girişi → Işıklı Vadi Başlangıcı**.
+
+> Puzzle sistemleri ana oyun akışının merkezi değildir. Harita içinde gizli veya opsiyonel mini görevler olarak kullanılacaktır. Ana ilerleme 4 bölge, ışık tohumu toplama ve portal açma sistemi üzerine kuruludur.
 
 ## 1. Unity Oyun Prototipi ve Ana Oynanış
 
@@ -42,27 +44,57 @@ Lumora; 5–7 yaş çocuklara yönelik, basit grafikli ve tamamlanabilir hikâye
 **Test:** Yardım Et, Sonra ve Kapat akışları Play Mode’da doğrulanır.  
 **Not:** Bu görev teknik event ve mini görev altyapısını sağlar; nihai oyun yapısı için bölge, portal, ışık tohumu ve hikâye ilerleme sistemi ayrıca geliştirilecektir. Bu yapı ileride bölge görevleri ve hikâye seçimleri için kullanılacaktır.
 
-### 1.4 Ana Hikâye Giriş Sahnesi
+### 1.4 Ana Menü Sistemi
 
 **Durum:** Yapılacak  
-**Amaç:** Lumora dünyasının karardığını ve Işık Ağacı’nın gücünü kaybettiğini anlatan kısa giriş akışı oluşturmak.  
+**Amaç:** Oyuncu oyuna girdiğinde Lumora ana menüsünü görsün.  
 **Kapsam:** Yalnızca `game/Assets`.  
-**Çıktı:** Kısa giriş UI/metni; güç kaybeden Işık Ağacı sahnesi; “Işıklı Vadi’ye git ve ilk ışık tohumunu bul.” hedefi.  
-**Eventler:** `area_explored`.  
-**Test:** Play Mode başladığında oyuncu hikâyeyi ve ilk hedefi anlayabilmeli.  
-**Not:** Giriş kısa, çocuk dostu ve atlanabilir olmalı.
+**Çıktı:** Lumora logo/başlık alanı; Başla butonu; Devam Et butonu; Ayarlar butonu; çocuk dostu büyülü orman arka planı.  
+**Eventler:** Yok.  
+**Test:** Play Mode başladığında önce ana menü görünmeli; Başla butonuna basınca karakter seçim ekranına geçmeli.  
+**Not:** Ana menü, oyun sahnesindeki hareket ve etkileşimleri görünür olana kadar kilitlemeli.
 
-### 1.5 Bölge Sistemi ve Portal Mantığı
+### 1.5 Karakter Seçim Sistemi
 
 **Durum:** Yapılacak  
-**Amaç:** Dört bölgeye dayalı sıralı ilerleme sistemini kurmak.  
+**Amaç:** Oyuncunun erkek veya kız karakter seçmesini sağlamak.  
 **Kapsam:** Yalnızca `game/Assets`.  
-**Çıktı:** Işıklı Vadi, Sisli Orman, Kristal Mağara ve Karanlık Tepe temsilleri; portal noktaları; tohuma bağlı kilit/açık durumu.  
+**Çıktı:** Erkek karakter kartı; kız karakter kartı; seçilen karakterin kaydedilmesi; seçime göre oyuncu karakterinin belirlenmesi.  
+**Eventler:** Gerekiyorsa mevcut `choice_made` formatı kullanılabilir.  
+**Test:** Erkek seçilirse erkek karakter akışı, kız seçilirse kız karakter akışı başlamalı.  
+**Not:** Seçim bilgisi intro animasyonu ve oyun karakteri tarafından ortak bir kaynaktan okunmalı.
+
+### 1.6 Karaktere Göre Intro Animasyonu
+
+**Durum:** Yapılacak  
+**Amaç:** Seçilen karaktere göre farklı giriş videosu veya animasyonu oynatmak.  
+**Kapsam:** Yalnızca `game/Assets`.  
+**Çıktı:** Erkek karakter seçilirse erkek intro videosu; kız karakter seçilirse kız intro videosu; video bitince hikâye girişine geçiş.  
+**Eventler:** Yok.  
+**Test:** Erkek seçiminde erkek, kız seçiminde kız intro videosu oynatılmalı; video bitince hikâye akışı devam etmeli.  
+**Not:** Intro kısa, çocuk dostu ve gerektiğinde atlanabilir olmalı.
+
+### 1.7 Ana Hikâye Giriş Sahnesi
+
+**Durum:** Yapılacak  
+**Amaç:** Lumora dünyasının karardığını, Işık Ağacı’nın gücünü kaybettiğini ve oyuncunun ilk hedefini anlatmak.  
+**Kapsam:** Yalnızca `game/Assets`.  
+**Çıktı:** “Lumora Karardı” paneli; Işık Ağacı ve dört bölge hikâyesi; “İlk hedef: Işıklı Vadi’deki ışık tohumunu bul.” metni.  
+**Eventler:** Yeni event zorunlu değil.  
+**Test:** Karaktere göre intro animasyonu tamamlandıktan sonra hikâye paneli görünmeli; panel kapatılınca Işıklı Vadi başlangıcı açılmalı.  
+**Not:** Bu görev teknik olarak uygulanmıştır ancak yeni akışta ana menü, karakter seçimi ve intro animasyonundan sonra çalışacak şekilde ileride yeniden bağlanacaktır.
+
+### 1.8 Bölge Sistemi ve Portal Mantığı
+
+**Durum:** Yapılacak  
+**Amaç:** Dört bölge, ışık tohumu ve portal kilit sistemini kurmak.  
+**Kapsam:** Yalnızca `game/Assets`.  
+**Çıktı:** Işıklı Vadi; Sisli Orman; Kristal Mağara; Karanlık Tepe; tohum alınmadan açılmayan sıralı portallar.  
 **Eventler:** `area_explored`, `reward_collected`.  
-**Test:** İlk bölge tamamlanmadan ikinci bölgeye geçilememeli; tohum alınınca portal açılmalı.  
+**Test:** Bir bölgedeki ışık tohumu bulunmadan sonraki bölgeye geçilememeli.  
 **Not:** Kalıcı kayıt bu görevin dışında; Play Mode oturum durumu yeterlidir.
 
-### 1.6 Işık Tohumu Toplama Sistemi
+### 1.9 Işık Tohumu Toplama Sistemi
 
 **Durum:** Yapılacak  
 **Amaç:** Her bölgenin ana hedefi olan ışık tohumlarını toplanabilir yapmak.  
@@ -72,7 +104,7 @@ Lumora; 5–7 yaş çocuklara yönelik, basit grafikli ve tamamlanabilir hikâye
 **Test:** Tohum alındığında event gitmeli, UI güncellenmeli ve sonraki portal açılmalı.  
 **Not:** Her bölgenin tohumu yalnızca bir kez toplanabilmeli.
 
-### 1.7 Basit Harita / Bölge İlerleme UI
+### 1.10 Basit Harita / Bölge İlerleme UI
 
 **Durum:** Yapılacak  
 **Amaç:** Oyuncunun bölgesini, hedefini ve topladığı ışık tohumu sayısını göstermek.  
@@ -82,7 +114,7 @@ Lumora; 5–7 yaş çocuklara yönelik, basit grafikli ve tamamlanabilir hikâye
 **Test:** Bölge, tohum ve portal durumu değiştikçe UI doğru güncellenmeli.  
 **Not:** Mobil ekranda okunabilir ve sade olmalı.
 
-### 1.8 Bölge 1 — Işıklı Vadi Oynanabilir Level
+### 1.11 Bölge 1 — Işıklı Vadi Oynanabilir Level
 
 **Durum:** Yapılacak  
 **Amaç:** Teknik demo alanını küçük fakat anlamlı ilk bölgeye dönüştürmek.  
@@ -92,7 +124,7 @@ Lumora; 5–7 yaş çocuklara yönelik, basit grafikli ve tamamlanabilir hikâye
 **Test:** Oyuncu başlangıçtan tohuma ulaşabilmeli ve tohum alındığında portal açılmalı.  
 **Not:** Kısa bir oynanabilir level hedeflenir; büyük açık dünya yapılmaz.
 
-### 1.9 Bölge 2 — Sisli Orman Taslağı
+### 1.12 Bölge 2 — Sisli Orman Taslağı
 
 **Durum:** Yapılacak  
 **Amaç:** İkinci bölge için küçük oynanabilir alan taslağı oluşturmak.  
@@ -102,7 +134,7 @@ Lumora; 5–7 yaş çocuklara yönelik, basit grafikli ve tamamlanabilir hikâye
 **Test:** Bölge 1 tamamlanmadan erişilememeli; tohum alınca sonraki portal açılmalı.  
 **Not:** Primitive ve düşük maliyetli görseller yeterlidir.
 
-### 1.10 Bölge 3 — Kristal Mağara Taslağı
+### 1.13 Bölge 3 — Kristal Mağara Taslağı
 
 **Durum:** Yapılacak  
 **Amaç:** Üçüncü bölge için küçük oynanabilir alan taslağı oluşturmak.  
@@ -112,7 +144,7 @@ Lumora; 5–7 yaş çocuklara yönelik, basit grafikli ve tamamlanabilir hikâye
 **Test:** Bölge 2 tamamlanmadan erişilememeli; tohum alınca son bölge açılmalı.  
 **Not:** Bölge mekaniği tek oturumda test edilebilir boyutta kalmalı.
 
-### 1.11 Bölge 4 — Karanlık Tepe ve Final Taslağı
+### 1.14 Bölge 4 — Karanlık Tepe ve Final Taslağı
 
 **Durum:** Yapılacak  
 **Amaç:** Son bölgeyi ve Işık Ağacı’nın geri kazanım finalini oluşturmak.  
@@ -122,7 +154,7 @@ Lumora; 5–7 yaş çocuklara yönelik, basit grafikli ve tamamlanabilir hikâye
 **Test:** Dördüncü tohumdan sonra final mesajı gösterilmeli.  
 **Not:** Final kısa ve açık bir tamamlanma hissi vermeli.
 
-### 1.12 Portal Açılma / Kilit Sistemi
+### 1.15 Portal Açılma / Kilit Sistemi
 
 **Durum:** Yapılacak  
 **Amaç:** Bölge geçişlerini ilgili ışık tohumu durumuna göre kilitlemek.  
@@ -130,9 +162,9 @@ Lumora; 5–7 yaş çocuklara yönelik, basit grafikli ve tamamlanabilir hikâye
 **Çıktı:** Kapalı/açık portal görünümü; kilit mesajı; açık portal ile bölge geçişi.  
 **Eventler:** `area_explored`.  
 **Test:** Tohum yokken geçiş engellenmeli; tohum varken sonraki bölgeye geçilmeli.  
-**Not:** 1.5 ve 1.6 sistemleriyle tek bir durum kaynağı kullanılmalı.
+**Not:** 1.8 ve 1.9 sistemleriyle tek bir durum kaynağı kullanılmalı.
 
-### 1.13 Mini Puzzle Noktalarını Haritaya Yerleştirme
+### 1.16 Mini Puzzle Noktalarını Haritaya Yerleştirme
 
 **Durum:** Yapılacak  
 **Amaç:** Mevcut puzzleları gizli ve opsiyonel davranış verisi noktalarına dönüştürmek.  
@@ -142,7 +174,7 @@ Lumora; 5–7 yaş çocuklara yönelik, basit grafikli ve tamamlanabilir hikâye
 **Test:** Oyuncu puzzle yapmadan ana tohumu alabilmeli; puzzle oynandığında ek eventler üretilmeli.  
 **Not:** Puzzle tamamlamak portal açmanın zorunlu koşulu olmamalı.
 
-### 1.14 Oyuncu Kontrol ve Kamera İyileştirme
+### 1.17 Oyuncu Kontrol ve Kamera İyileştirme
 
 **Durum:** Yapılacak  
 **Amaç:** Hareketi ve kamera takibini daha akıcı, mobil oyuna daha yakın hâle getirmek.  
@@ -152,7 +184,7 @@ Lumora; 5–7 yaş çocuklara yönelik, basit grafikli ve tamamlanabilir hikâye
 **Test:** Oyuncu bölgelerde rahat hareket etmeli, kamera hedefi kaybetmemeli.  
 **Not:** Kontroller 5–7 yaş grubu için basit tutulmalı.
 
-### 1.15 Çocuk Dostu Görsel Atmosfer İyileştirme
+### 1.18 Çocuk Dostu Görsel Atmosfer İyileştirme
 
 **Durum:** Yapılacak  
 **Amaç:** Teknik test sahnesini sıcak ve çocuk dostu bir oyun alanına dönüştürmek.  
@@ -162,7 +194,7 @@ Lumora; 5–7 yaş çocuklara yönelik, basit grafikli ve tamamlanabilir hikâye
 **Test:** Sahne teknik prototipten çok sade bir oyun alanı gibi görünmeli.  
 **Not:** Performans ve okunabilirlik ayrıntılı görsellikten önceliklidir.
 
-### 1.16 Android APK Hazırlığı
+### 1.19 Android APK Hazırlığı
 
 **Durum:** Daha Sonra  
 **Amaç:** Unity projesinden Android test APK’sı almak.  
@@ -280,4 +312,4 @@ Lumora; 5–7 yaş çocuklara yönelik, basit grafikli ve tamamlanabilir hikâye
 - Gerçek çocuk testi
 - Tam pedagogik değerlendirme sistemi
 
-Sıradaki Önerilen Görev: 1.4 Ana Hikâye Giriş Sahnesi
+Sıradaki Önerilen Görev: 1.4 Ana Menü Sistemi
