@@ -6,9 +6,12 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.Video;
 
 public static class LumoraPrototypeSceneBuilder
 {
+    private const string IntroVideoImportMarker =
+        "lumora_h264_baseline_v1";
     private const string ScenePath = "Assets/Scenes/PrototypeScene.unity";
     private const string EventEndpoint = "http://localhost:5000/api/events";
     private const string ChildId = "demo-child-001";
@@ -22,6 +25,31 @@ public static class LumoraPrototypeSceneBuilder
         "Assets/LumoraAssets/Videos/erkek_intro.mp4";
     private const string FemaleIntroVideoPath =
         "Assets/LumoraAssets/Videos/kiz_intro.mp4";
+
+    static LumoraPrototypeSceneBuilder()
+    {
+        EditorApplication.delayCall += ConfigureIntroVideoImportsOnLoad;
+        EditorApplication.playModeStateChanged += HandlePlayModeStateChanged;
+    }
+
+    private static void HandlePlayModeStateChanged(
+        PlayModeStateChange state)
+    {
+        if (state == PlayModeStateChange.EnteredEditMode)
+        {
+            EditorApplication.delayCall += ConfigureIntroVideoImportsOnLoad;
+        }
+    }
+
+    private static void ConfigureIntroVideoImportsOnLoad()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            return;
+        }
+
+        ConfigureIntroVideoImports();
+    }
 
     [MenuItem("Tools/Lumora/Build Prototype Scene")]
     public static void BuildPrototypeScene()
@@ -41,10 +69,17 @@ public static class LumoraPrototypeSceneBuilder
             return;
         }
 
+        if (!ConfigureIntroVideoImports())
+        {
+            return;
+        }
+
         if (!TryLoadMenuAssets(
                 out Texture2D mainMenuTexture,
                 out Texture2D maleCharacterTexture,
-                out Texture2D femaleCharacterTexture))
+                out Texture2D femaleCharacterTexture,
+                out VideoClip maleIntroVideo,
+                out VideoClip femaleIntroVideo))
         {
             return;
         }
@@ -131,7 +166,9 @@ public static class LumoraPrototypeSceneBuilder
             storyIntro,
             mainMenuTexture,
             maleCharacterTexture,
-            femaleCharacterTexture
+            femaleCharacterTexture,
+            maleIntroVideo,
+            femaleIntroVideo
         );
         PuzzlePopupUI puzzlePopup = CreatePuzzlePopup(
             eventSender,
@@ -165,19 +202,21 @@ public static class LumoraPrototypeSceneBuilder
     private static bool TryLoadMenuAssets(
         out Texture2D mainMenuTexture,
         out Texture2D maleCharacterTexture,
-        out Texture2D femaleCharacterTexture)
+        out Texture2D femaleCharacterTexture,
+        out VideoClip maleIntroVideo,
+        out VideoClip femaleIntroVideo)
     {
         mainMenuTexture = null;
         maleCharacterTexture = null;
         femaleCharacterTexture = null;
+        maleIntroVideo = null;
+        femaleIntroVideo = null;
 
         string[] requiredAssetPaths =
         {
             MainMenuConceptPath,
             MaleCharacterPath,
-            FemaleCharacterPath,
-            MaleIntroVideoPath,
-            FemaleIntroVideoPath
+            FemaleCharacterPath
         };
 
         bool hasMissingAsset = false;
@@ -205,10 +244,82 @@ public static class LumoraPrototypeSceneBuilder
             AssetDatabase.LoadAssetAtPath<Texture2D>(MaleCharacterPath);
         femaleCharacterTexture =
             AssetDatabase.LoadAssetAtPath<Texture2D>(FemaleCharacterPath);
+        maleIntroVideo =
+            AssetDatabase.LoadAssetAtPath<VideoClip>(MaleIntroVideoPath);
+        femaleIntroVideo =
+            AssetDatabase.LoadAssetAtPath<VideoClip>(FemaleIntroVideoPath);
+
+        if (maleIntroVideo == null)
+        {
+            Debug.LogWarning(
+                "Erkek intro videosu bulunamadı. Oyun güvenli biçimde " +
+                "hikâye girişine geçecek: " + MaleIntroVideoPath
+            );
+        }
+
+        if (femaleIntroVideo == null)
+        {
+            Debug.LogWarning(
+                "Kız intro videosu bulunamadı. Oyun güvenli biçimde " +
+                "hikâye girişine geçecek: " + FemaleIntroVideoPath
+            );
+        }
 
         return mainMenuTexture != null &&
                maleCharacterTexture != null &&
                femaleCharacterTexture != null;
+    }
+
+    private static bool ConfigureIntroVideoImports()
+    {
+        string[] videoPaths =
+        {
+            MaleIntroVideoPath,
+            FemaleIntroVideoPath
+        };
+
+        foreach (string videoPath in videoPaths)
+        {
+            VideoClipImporter importer =
+                AssetImporter.GetAtPath(videoPath) as VideoClipImporter;
+            if (importer == null)
+            {
+                Debug.LogError(
+                    "Intro videosu için VideoClipImporter bulunamadı: " +
+                    videoPath
+                );
+                return false;
+            }
+
+            VideoImporterTargetSettings settings =
+                importer.defaultTargetSettings;
+            bool needsReimport = importer.userData != IntroVideoImportMarker;
+
+            if (!needsReimport)
+            {
+                continue;
+            }
+
+            settings.enableTranscoding = true;
+            settings.codec = VideoCodec.H264;
+            settings.resizeMode = VideoResizeMode.OriginalSize;
+            settings.spatialQuality =
+                VideoSpatialQuality.HighSpatialQuality;
+            // Unity 6.3 does not accept "Default" as a target name here.
+            // This project currently builds for Windows/Mac/Linux, whose
+            // VideoClipImporter platform name is "Standalone".
+            importer.SetTargetSettings("Standalone", settings);
+            importer.importAudio = true;
+            importer.userData = IntroVideoImportMarker;
+            importer.SaveAndReimport();
+
+            Debug.Log(
+                "Intro videosu Unity H.264 Baseline önbelleğine aktarıldı: " +
+                videoPath
+            );
+        }
+
+        return true;
     }
 
     private static bool ConfigureUiTextureImports()
@@ -815,7 +926,9 @@ public static class LumoraPrototypeSceneBuilder
         StoryIntroUI storyIntro,
         Texture2D mainMenuTexture,
         Texture2D maleCharacterTexture,
-        Texture2D femaleCharacterTexture)
+        Texture2D femaleCharacterTexture,
+        VideoClip maleIntroVideo,
+        VideoClip femaleIntroVideo)
     {
         GameObject mainMenuCanvas = new GameObject(
             "MainMenuCanvas",
@@ -946,6 +1059,15 @@ public static class LumoraPrototypeSceneBuilder
         MainMenuUI mainMenu = mainMenuCanvas.AddComponent<MainMenuUI>();
         CharacterSelectionUI characterSelection =
             characterSelectCanvas.AddComponent<CharacterSelectionUI>();
+        IntroVideoUI introVideo = CreateIntroVideoUi(
+            playerController,
+            storyIntro,
+            characterSelection,
+            mainMenuCanvas,
+            characterSelectCanvas,
+            maleIntroVideo,
+            femaleIntroVideo
+        );
 
         SerializedObject mainMenuObject = new SerializedObject(mainMenu);
         SetObjectProperty(
@@ -974,7 +1096,7 @@ public static class LumoraPrototypeSceneBuilder
         );
         SetObjectProperty(selectionObject, "selectionRoot", selectionRoot);
         SetObjectProperty(selectionObject, "mainMenuUI", mainMenu);
-        SetObjectProperty(selectionObject, "storyIntroUI", storyIntro);
+        SetObjectProperty(selectionObject, "introVideoUI", introVideo);
         SetObjectProperty(selectionObject, "maleButton", maleButton);
         SetObjectProperty(selectionObject, "femaleButton", femaleButton);
         SetObjectProperty(selectionObject, "backButton", backButton);
@@ -982,6 +1104,134 @@ public static class LumoraPrototypeSceneBuilder
 
         menuRoot.SetActive(true);
         characterSelectCanvas.SetActive(false);
+    }
+
+    private static IntroVideoUI CreateIntroVideoUi(
+        PlayerController playerController,
+        StoryIntroUI storyIntro,
+        CharacterSelectionUI characterSelection,
+        GameObject mainMenuCanvas,
+        GameObject characterSelectionCanvas,
+        VideoClip maleIntroVideo,
+        VideoClip femaleIntroVideo)
+    {
+        GameObject canvasObject = new GameObject(
+            "IntroVideoCanvas",
+            typeof(RectTransform),
+            typeof(Canvas),
+            typeof(CanvasScaler),
+            typeof(GraphicRaycaster),
+            typeof(VideoPlayer),
+            typeof(AudioSource)
+        );
+        ConfigureOverlayCanvas(
+            canvasObject,
+            60,
+            new Vector2(1920f, 1080f)
+        );
+
+        GameObject videoRoot = CreateFullScreenUiObject(
+            "IntroVideoRoot",
+            canvasObject.transform
+        );
+        Image blackBackdrop = videoRoot.AddComponent<Image>();
+        blackBackdrop.color = Color.black;
+        blackBackdrop.raycastTarget = true;
+
+        GameObject videoImageObject = CreateFullScreenUiObject(
+            "IntroVideoImage",
+            videoRoot.transform
+        );
+        RawImage videoImage = videoImageObject.AddComponent<RawImage>();
+        videoImage.color = Color.white;
+        videoImage.raycastTarget = false;
+
+        AspectRatioFitter videoAspectFitter =
+            videoImageObject.AddComponent<AspectRatioFitter>();
+        videoAspectFitter.aspectMode =
+            AspectRatioFitter.AspectMode.FitInParent;
+        videoAspectFitter.aspectRatio = 16f / 9f;
+
+        Button skipButton = CreateSizedButton(
+            "SkipIntroButton",
+            videoRoot.transform,
+            "Geç",
+            new Vector2(180f, 64f),
+            new Vector2(800f, -465f),
+            new Color(0.12f, 0.18f, 0.23f, 0.9f)
+        );
+
+        VideoPlayer videoPlayer = canvasObject.GetComponent<VideoPlayer>();
+        videoPlayer.source = VideoSource.VideoClip;
+        videoPlayer.playOnAwake = false;
+        videoPlayer.isLooping = false;
+        videoPlayer.waitForFirstFrame = true;
+        // Work around the Windows decoder regression in Unity 6000.3.14f1.
+        videoPlayer.skipOnDrop = false;
+        videoPlayer.playbackSpeed = 1f;
+        videoPlayer.timeUpdateMode = VideoTimeUpdateMode.UnscaledGameTime;
+        videoPlayer.sendFrameReadyEvents = true;
+        videoPlayer.renderMode = VideoRenderMode.RenderTexture;
+        videoPlayer.targetTexture = null;
+        videoPlayer.aspectRatio = VideoAspectRatio.FitInside;
+        videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
+
+        AudioSource audioSource = canvasObject.GetComponent<AudioSource>();
+        audioSource.enabled = true;
+        audioSource.playOnAwake = false;
+        audioSource.loop = false;
+        audioSource.spatialBlend = 0f;
+        audioSource.mute = false;
+        audioSource.volume = 1f;
+
+        IntroVideoUI introVideo = canvasObject.AddComponent<IntroVideoUI>();
+        SerializedObject introVideoObject = new SerializedObject(introVideo);
+        SetObjectProperty(
+            introVideoObject,
+            "playerController",
+            playerController
+        );
+        SetObjectProperty(introVideoObject, "storyIntroUI", storyIntro);
+        SetObjectProperty(
+            introVideoObject,
+            "characterSelectionUI",
+            characterSelection
+        );
+        SetObjectProperty(
+            introVideoObject,
+            "mainMenuCanvas",
+            mainMenuCanvas
+        );
+        SetObjectProperty(
+            introVideoObject,
+            "characterSelectionCanvas",
+            characterSelectionCanvas
+        );
+        SetObjectProperty(introVideoObject, "videoRoot", videoRoot);
+        SetObjectProperty(introVideoObject, "videoImage", videoImage);
+        SetObjectProperty(
+            introVideoObject,
+            "videoAspectFitter",
+            videoAspectFitter
+        );
+        SetObjectProperty(introVideoObject, "videoPlayer", videoPlayer);
+        SetObjectProperty(introVideoObject, "audioSource", audioSource);
+        SetObjectProperty(introVideoObject, "skipButton", skipButton);
+        SetObjectProperty(
+            introVideoObject,
+            "maleIntroClip",
+            maleIntroVideo
+        );
+        SetObjectProperty(
+            introVideoObject,
+            "femaleIntroClip",
+            femaleIntroVideo
+        );
+        introVideoObject.ApplyModifiedPropertiesWithoutUndo();
+
+        videoRoot.SetActive(false);
+        canvasObject.SetActive(true);
+        return introVideo;
     }
 
     private static void CreateNpc(

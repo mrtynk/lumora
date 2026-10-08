@@ -7,7 +7,7 @@ public class CharacterSelectionUI : MonoBehaviour
     [SerializeField] private PlayerController playerController;
     [SerializeField] private GameObject selectionRoot;
     [SerializeField] private MainMenuUI mainMenuUI;
-    [SerializeField] private StoryIntroUI storyIntroUI;
+    [SerializeField] private IntroVideoUI introVideoUI;
     [SerializeField] private Button maleButton;
     [SerializeField] private Button femaleButton;
     [SerializeField] private Button backButton;
@@ -65,7 +65,7 @@ public class CharacterSelectionUI : MonoBehaviour
         SelectedCharacterState.SelectCharacter(characterId);
         selectionRoot.SetActive(false);
         gameObject.SetActive(false);
-        storyIntroUI.ShowIntro();
+        introVideoUI.PlaySelectedCharacterIntro();
     }
 
     private void ReturnToMainMenu()
@@ -88,7 +88,7 @@ public class CharacterSelectionUI : MonoBehaviour
         return playerController != null &&
                selectionRoot != null &&
                mainMenuUI != null &&
-               storyIntroUI != null &&
+               introVideoUI != null &&
                maleButton != null &&
                femaleButton != null &&
                backButton != null;

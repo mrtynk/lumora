@@ -1,0 +1,37 @@
+Unity 6000.3.14f1 intro integration check
+16:35:02 Starting Play Mode with the existing PrototypeScene.
+16:35:06 START case=0 clip=erkek_intro frameCount=240 audio=AudioSource
+16:35:07 sample case=0 clip=erkek_intro frame=0 time=0,00 playing=True skipOnDrop=False
+16:35:08 sample case=0 clip=erkek_intro frame=24 time=1,00 playing=True skipOnDrop=False
+16:35:09 sample case=0 clip=erkek_intro frame=48 time=2,00 playing=True skipOnDrop=False
+16:35:10 sample case=0 clip=erkek_intro frame=72 time=3,00 playing=True skipOnDrop=False
+16:35:11 sample case=0 clip=erkek_intro frame=96 time=4,00 playing=True skipOnDrop=False
+16:35:12 sample case=0 clip=erkek_intro frame=120 time=5,00 playing=True skipOnDrop=False
+16:35:18 START case=0 clip=erkek_intro frameCount=240 audio=AudioSource
+16:35:18 sample case=0 clip=erkek_intro frame=0 time=0,00 playing=True skipOnDrop=False
+16:35:19 sample case=0 clip=erkek_intro frame=24 time=1,00 playing=True skipOnDrop=False
+16:35:20 sample case=0 clip=erkek_intro frame=48 time=2,00 playing=True skipOnDrop=False
+16:35:21 sample case=0 clip=erkek_intro frame=72 time=3,00 playing=True skipOnDrop=False
+16:35:22 sample case=0 clip=erkek_intro frame=96 time=4,00 playing=True skipOnDrop=False
+16:35:23 sample case=0 clip=erkek_intro frame=121 time=5,04 playing=True skipOnDrop=False
+16:35:24 sample case=0 clip=erkek_intro frame=145 time=6,04 playing=True skipOnDrop=False
+16:35:25 sample case=0 clip=erkek_intro frame=169 time=7,04 playing=True skipOnDrop=False
+16:35:26 sample case=0 clip=erkek_intro frame=193 time=8,04 playing=True skipOnDrop=False
+16:35:27 sample case=0 clip=erkek_intro frame=217 time=9,04 playing=True skipOnDrop=False
+16:35:28 PASS case=0 maxFrame=239 frameEvents=240 changedPixels=True completed=1 overflowWarnings=0 elapsed=10,03
+16:35:28 START case=1 clip=kiz_intro frameCount=240 audio=AudioSource
+16:35:28 sample case=1 clip=kiz_intro frame=0 time=0,00 playing=True skipOnDrop=False
+16:35:29 sample case=1 clip=kiz_intro frame=24 time=1,00 playing=True skipOnDrop=False
+16:35:30 sample case=1 clip=kiz_intro frame=48 time=2,00 playing=True skipOnDrop=False
+16:35:31 sample case=1 clip=kiz_intro frame=72 time=3,00 playing=True skipOnDrop=False
+16:35:32 sample case=1 clip=kiz_intro frame=96 time=4,00 playing=True skipOnDrop=False
+16:35:33 sample case=1 clip=kiz_intro frame=120 time=5,00 playing=True skipOnDrop=False
+16:35:34 sample case=1 clip=kiz_intro frame=144 time=6,00 playing=True skipOnDrop=False
+16:35:35 sample case=1 clip=kiz_intro frame=168 time=7,00 playing=True skipOnDrop=False
+16:35:36 sample case=1 clip=kiz_intro frame=192 time=8,00 playing=True skipOnDrop=False
+16:35:37 sample case=1 clip=kiz_intro frame=217 time=9,04 playing=True skipOnDrop=False
+16:35:38 PASS case=1 maxFrame=239 frameEvents=240 changedPixels=True completed=1 overflowWarnings=0 elapsed=10,02
+16:35:38 START case=2 clip=erkek_intro frameCount=240 audio=AudioSource
+16:35:38 sample case=2 clip=erkek_intro frame=0 time=0,00 playing=True skipOnDrop=False
+16:35:39 PASS case=2 maxFrame=20 frameEvents=21 changedPixels=True completed=0 overflowWarnings=0 elapsed=0,90
+16:35:39 ALL CASES PASSED: male, female, skip; gameplay unlocked.
