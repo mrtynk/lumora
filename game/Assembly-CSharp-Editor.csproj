@@ -50,6 +50,8 @@
   <ItemGroup>
     <Compile Include="Assets\Editor\IsikliVadiPlayVerification.cs" />
     <Compile Include="Assets\Editor\IsikliVadiEnvironmentBuilder.cs" />
+    <Compile Include="Assets\Editor\SisliOrmanSceneBuilder.cs" />
+    <Compile Include="Assets\Editor\TwoRegionPlayVerification.cs" />
     <Compile Include="Assets\Editor\IsikliVadiSceneValidation.cs" />
     <Compile Include="Assets\Editor\LumoraIntroPlaybackVerification.cs" />
     <Compile Include="Assets\Editor\LumoraLevelSceneBuilder.cs" />
@@ -57,6 +59,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Editor\IsikliVadiPlayVerification.results.txt" />
+    <None Include="Assets\Editor\TwoRegionPlayVerification.results.txt" />
     <None Include="Assets\Editor\LumoraIntroPlaybackVerification.results.txt" />
   </ItemGroup>
   <ItemGroup>

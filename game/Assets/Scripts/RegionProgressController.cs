@@ -47,9 +47,31 @@ public class RegionProgressController : MonoBehaviour
     private bool[] exploredRegions;
     private bool[] collectedSeeds;
     private int activeRegionIndex;
-    private int collectedSeedCount;
     private bool hasStarted;
     private bool sceneTransitionInProgress;
+
+    // Only production scenes share this Play-session state. The technical
+    // four-platform prototype continues using its own instance arrays.
+    private static readonly bool[] sessionSeeds = new bool[4];
+    private static readonly bool[] sessionExplored = new bool[4];
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    public static void ResetAdventure()
+    {
+        System.Array.Clear(sessionSeeds, 0, sessionSeeds.Length);
+        System.Array.Clear(sessionExplored, 0, sessionExplored.Length);
+    }
+
+    public int CollectedSeedCount
+    {
+        get
+        {
+            EnsureInitialized();
+            int count = 0;
+            foreach (bool collected in collectedSeeds) if (collected) count++;
+            return count;
+        }
+    }
 
     public bool HasStarted => hasStarted;
     public int ActiveRegionIndex
@@ -83,12 +105,11 @@ public class RegionProgressController : MonoBehaviour
         {
             return;
         }
-        exploredRegions = new bool[RegionNames.Length];
-        collectedSeeds = new bool[RegionNames.Length];
+        exploredRegions = useSceneTransitions ? sessionExplored : new bool[RegionNames.Length];
+        collectedSeeds = useSceneTransitions ? sessionSeeds : new bool[RegionNames.Length];
         activeRegionIndex = useSceneTransitions
             ? Mathf.Clamp(sceneRegionIndex, 0, RegionNames.Length - 1)
             : 0;
-        collectedSeedCount = 0;
     }
 
     // Production levels call this after the story panel, while the prototype
@@ -106,7 +127,16 @@ public class RegionProgressController : MonoBehaviour
             return;
         }
 
+        if (useSceneTransitions && activeRegionIndex > 0 && !collectedSeeds[activeRegionIndex - 1])
+        {
+            Notify("Önce " + RegionNames[activeRegionIndex - 1] + " bölgesindeki ışık tohumunu bul.");
+            UpdateProgressUi();
+            return;
+        }
+
         hasStarted = true;
+        for (int i = 0; i < lightSeeds.Length; i++)
+            lightSeeds[i].gameObject.SetActive(!collectedSeeds[useSceneTransitions ? sceneRegionIndex : i]);
         RefreshPortals();
         Notify("Bu bölgedeki ışık tohumunu bul ve portalı aç.");
         MarkRegionExplored(activeRegionIndex);
@@ -130,7 +160,6 @@ public class RegionProgressController : MonoBehaviour
         }
 
         collectedSeeds[regionIndex] = true;
-        collectedSeedCount++;
         RefreshPortals();
 
         SendProgressEvent(
@@ -206,7 +235,7 @@ public class RegionProgressController : MonoBehaviour
         // An unfinished region must not be marked explored or loaded as a
         // placeholder. A future scene can be wired on the same PortalTrigger.
         if (string.IsNullOrWhiteSpace(destinationSceneName) ||
-            !Application.CanStreamedLevelBeLoaded(destinationSceneName) ||
+            !RegionSceneLoader.CanLoad(destinationSceneName) ||
             SceneManager.GetActiveScene().name == destinationSceneName)
         {
             Notify(RegionNames[nextRegionIndex] + " yakında.");
@@ -219,7 +248,7 @@ public class RegionProgressController : MonoBehaviour
         {
             // Single unloads the current scene and its managers together.
             // The destination's controller owns its own area_explored event.
-            AsyncOperation load = SceneManager.LoadSceneAsync(destinationSceneName, LoadSceneMode.Single);
+            AsyncOperation load = RegionSceneLoader.Load(destinationSceneName);
             if (load == null)
             {
                 sceneTransitionInProgress = false;
@@ -291,7 +320,7 @@ public class RegionProgressController : MonoBehaviour
     private void UpdateProgressUi()
     {
         SetText(activeRegionText, "Aktif Bölge: " + RegionNames[activeRegionIndex]);
-        SetText(seedCountText, "Işık Tohumu: " + collectedSeedCount + " / " + RegionNames.Length);
+        SetText(seedCountText, "Işık Tohumu: " + CollectedSeedCount + " / " + RegionNames.Length);
 
         if (!collectedSeeds[activeRegionIndex])
         {

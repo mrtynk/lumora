@@ -57,6 +57,7 @@ public class MainMenuUI : MonoBehaviour
 
     private void StartNewGame()
     {
+        RegionProgressController.ResetAdventure();
         menuRoot.SetActive(false);
         characterSelectionUI.ShowSelection();
     }

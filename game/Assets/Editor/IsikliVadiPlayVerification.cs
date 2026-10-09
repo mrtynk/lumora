@@ -127,7 +127,9 @@ public static class IsikliVadiPlayVerification
                     Write("PASS CharacterController physically traversed meadow, ramps, bridge and grove; ticks=" + walkTicks);
                     Check(!progress.TryCollectLightSeed(0), "Duplicate seed accepted.");
                     Check(!((Collider)Ref(Find<PortalTrigger>(), "blockingCollider")).enabled, "Portal remained locked.");
-                    progress.TryUsePortal(0, "SisliOrman");
+                    // Keep this regression in the valley; the two-region test
+                    // now covers the real SisliOrman portal transition.
+                    progress.TryUsePortal(0, "UnbuiltRegionForFallbackTest");
                     Check(SceneManager.GetActiveScene().name == "IsikliVadi", "Missing scene fallback failed.");
                     Write("PASS story, single progression owner, optional puzzles, portal lock/unlock/fallback.");
                     Find<PuzzlePopupUI>().OpenPuzzle("hidden_object");

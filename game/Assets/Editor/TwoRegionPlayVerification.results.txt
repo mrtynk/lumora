@@ -1,0 +1,5 @@
+Two-region integration / Unity 6000.3.14f1
+PASS actual valley walk, seed trigger, portal scene load, seed 1/4 and single manager; no second intro.
+PASS forest route/bridge/seed, count 2/4, crystal portal unlocked; unavailable crystal scene handled.
+PASS HTTP: area_explored/reward_collected exactly once per region; Console errors=0.
+PASS new-game reset. Database/device performance not covered by this local receiver test.
