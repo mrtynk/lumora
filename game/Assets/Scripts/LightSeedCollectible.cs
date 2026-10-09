@@ -9,7 +9,7 @@ public class LightSeedCollectible : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (collected || !other.CompareTag("Player"))
+        if (collected || progressController == null || !other.CompareTag("Player"))
         {
             return;
         }

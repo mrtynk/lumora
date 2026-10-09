@@ -77,6 +77,35 @@ public class PuzzlePopupUI : MonoBehaviour
         demoFlowController?.NotifyPuzzleInteractionStarted();
     }
 
+    // Haritadaki opsiyonel noktalar aynı UI ve event akışını kullanır.
+    public void OpenPuzzle(string puzzleType)
+    {
+        // Açık seçim menüsünü veya devam eden bir bulmacayı değiştirme.
+        if (IsOpen)
+        {
+            return;
+        }
+
+        OpenPopup();
+        if (!IsOpen)
+        {
+            return;
+        }
+
+        switch (puzzleType)
+        {
+            case HiddenObjectType:
+                StartHiddenObjectPuzzle();
+                break;
+            case MemoryMatchType:
+                StartMemoryMatchPuzzle();
+                break;
+            case PatternPuzzleType:
+                StartPatternPuzzle();
+                break;
+        }
+    }
+
     public bool IsPuzzleActive(string puzzleType)
     {
         return IsOpen && !isEnding && activePuzzleType == puzzleType;

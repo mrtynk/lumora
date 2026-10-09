@@ -9,14 +9,15 @@ public class PortalTrigger : MonoBehaviour
     [SerializeField] private Collider blockingCollider;
     [SerializeField] private Material lockedMaterial;
     [SerializeField] private Material openMaterial;
+    [Tooltip("Gerçek bölge sahnesinin adı. Prototipte boş bırakılabilir.")]
+    [SerializeField] private string destinationSceneName;
 
     public void SetUnlocked(bool isUnlocked)
     {
-        if (portalRenderer != null)
+        Material material = isUnlocked ? openMaterial : lockedMaterial;
+        if (portalRenderer != null && material != null)
         {
-            portalRenderer.sharedMaterial = isUnlocked
-                ? openMaterial
-                : lockedMaterial;
+            portalRenderer.sharedMaterial = material;
         }
 
         if (blockingCollider != null)
@@ -27,9 +28,9 @@ public class PortalTrigger : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (progressController != null && other.CompareTag("Player"))
         {
-            progressController.TryUsePortal(regionIndex);
+            progressController.TryUsePortal(regionIndex, destinationSceneName);
         }
     }
 }

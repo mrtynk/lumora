@@ -48,10 +48,15 @@
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.3.14f1\Editor\Data\Tools\BuildPipeline\Unity.SourceGenerators\Unity.UIToolkit.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\Editor\IsikliVadiPlayVerification.cs" />
+    <Compile Include="Assets\Editor\IsikliVadiEnvironmentBuilder.cs" />
+    <Compile Include="Assets\Editor\IsikliVadiSceneValidation.cs" />
     <Compile Include="Assets\Editor\LumoraIntroPlaybackVerification.cs" />
+    <Compile Include="Assets\Editor\LumoraLevelSceneBuilder.cs" />
     <Compile Include="Assets\Editor\LumoraPrototypeSceneBuilder.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Assets\Editor\IsikliVadiPlayVerification.results.txt" />
     <None Include="Assets\Editor\LumoraIntroPlaybackVerification.results.txt" />
   </ItemGroup>
   <ItemGroup>

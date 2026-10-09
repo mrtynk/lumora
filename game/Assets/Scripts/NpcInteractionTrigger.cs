@@ -4,6 +4,7 @@ using UnityEngine;
 public class NpcInteractionTrigger : MonoBehaviour
 {
     [SerializeField] private NpcDialogueUI dialogueUI;
+    [SerializeField] private PlayerController playerController;
 
     private bool playerIsNearby;
 
@@ -14,6 +15,11 @@ public class NpcInteractionTrigger : MonoBehaviour
 
     private void Update()
     {
+        if (playerController != null && !playerController.isActiveAndEnabled)
+        {
+            return;
+        }
+
         if (!playerIsNearby || !Input.GetKeyDown(KeyCode.E))
         {
             return;

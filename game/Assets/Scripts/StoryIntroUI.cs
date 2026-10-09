@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,6 +11,10 @@ public class StoryIntroUI : MonoBehaviour
     [SerializeField] private bool showOnStart = true;
 
     private bool introCompleted;
+    private bool adventureStarted;
+    private bool introRequested;
+
+    public event Action AdventureStarted;
 
     public bool IsOpen => introRoot != null && introRoot.activeSelf;
 
@@ -29,7 +34,12 @@ public class StoryIntroUI : MonoBehaviour
             return;
         }
 
-        introCompleted = false;
+        // ShowIntro can be called by another component before this Start.
+        // Do not hide or reset an intro that has already been requested.
+        if (introRequested)
+        {
+            return;
+        }
         if (showOnStart)
         {
             ShowIntro();
@@ -56,6 +66,7 @@ public class StoryIntroUI : MonoBehaviour
             return;
         }
 
+        introRequested = true;
         introCompleted = false;
         startButton.interactable = true;
         SetIntroVisible(true);
@@ -71,6 +82,11 @@ public class StoryIntroUI : MonoBehaviour
         introCompleted = true;
         startButton.interactable = false;
         SetIntroVisible(false);
+        if (!adventureStarted)
+        {
+            adventureStarted = true;
+            AdventureStarted?.Invoke();
+        }
     }
 
     private void SetIntroVisible(bool isVisible)

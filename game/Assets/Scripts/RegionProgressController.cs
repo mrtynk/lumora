@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class RegionProgressController : MonoBehaviour
@@ -31,6 +32,11 @@ public class RegionProgressController : MonoBehaviour
     [SerializeField] private PortalTrigger[] portals;
     [SerializeField] private GameObject regionOneGuide;
 
+    [Header("Sahne Akışı")]
+    [SerializeField] private bool startAutomatically = true;
+    [SerializeField] private bool useSceneTransitions;
+    [SerializeField, Range(0, 3)] private int sceneRegionIndex;
+
     [Header("İlerleme UI")]
     [SerializeField] private Text activeRegionText;
     [SerializeField] private Text seedCountText;
@@ -42,35 +48,81 @@ public class RegionProgressController : MonoBehaviour
     private bool[] collectedSeeds;
     private int activeRegionIndex;
     private int collectedSeedCount;
+    private bool hasStarted;
+    private bool sceneTransitionInProgress;
+
+    public bool HasStarted => hasStarted;
+    public int ActiveRegionIndex
+    {
+        get
+        {
+            EnsureInitialized();
+            return activeRegionIndex;
+        }
+    }
+
+    private void Awake()
+    {
+        EnsureInitialized();
+    }
 
     private void Start()
     {
+        EnsureInitialized();
+        RefreshPortals();
+        UpdateProgressUi();
+        if (startAutomatically)
+        {
+            BeginExploration();
+        }
+    }
+
+    private void EnsureInitialized()
+    {
+        if (collectedSeeds != null)
+        {
+            return;
+        }
+        exploredRegions = new bool[RegionNames.Length];
+        collectedSeeds = new bool[RegionNames.Length];
+        activeRegionIndex = useSceneTransitions
+            ? Mathf.Clamp(sceneRegionIndex, 0, RegionNames.Length - 1)
+            : 0;
+        collectedSeedCount = 0;
+    }
+
+    // Production levels call this after the story panel, while the prototype
+    // keeps its existing automatic Start behaviour.
+    public void BeginExploration()
+    {
+        EnsureInitialized();
+        if (hasStarted)
+        {
+            return;
+        }
         if (!HasRequiredReferences())
         {
-            Debug.LogError("RegionProgressController bağlantıları eksik.");
-            enabled = false;
+            Debug.LogWarning("RegionProgressController bağlantıları eksik; bölge henüz başlatılmadı.", this);
             return;
         }
 
-        exploredRegions = new bool[RegionNames.Length];
-        collectedSeeds = new bool[RegionNames.Length];
-        activeRegionIndex = 0;
-        collectedSeedCount = 0;
-
-        for (int i = 0; i < portals.Length; i++)
-        {
-            portals[i].SetUnlocked(false);
-        }
-
-        notificationText.text =
-            "Bu bölgedeki ışık tohumunu bul ve portalı aç.";
+        hasStarted = true;
+        RefreshPortals();
+        Notify("Bu bölgedeki ışık tohumunu bul ve portalı aç.");
         MarkRegionExplored(activeRegionIndex);
         UpdateProgressUi();
     }
 
+    public bool IsSeedCollected(int regionIndex)
+    {
+        EnsureInitialized();
+        return IsValidRegion(regionIndex) && collectedSeeds[regionIndex];
+    }
+
     public bool TryCollectLightSeed(int regionIndex)
     {
-        if (!IsValidRegion(regionIndex) ||
+        EnsureInitialized();
+        if (!hasStarted || !IsValidRegion(regionIndex) ||
             regionIndex != activeRegionIndex ||
             collectedSeeds[regionIndex])
         {
@@ -79,53 +131,116 @@ public class RegionProgressController : MonoBehaviour
 
         collectedSeeds[regionIndex] = true;
         collectedSeedCount++;
-        portals[regionIndex].SetUnlocked(true);
+        RefreshPortals();
 
-        eventSender.SendEvent(
-            ChildId,
-            "reward_collected",
-            RegionIds[regionIndex],
-            ProgressType,
-            "Işık tohumu toplandı: " + RegionNames[regionIndex]
-        );
+        SendProgressEvent(
+            "reward_collected", regionIndex,
+            "Işık tohumu toplandı: " + RegionNames[regionIndex]);
 
-        notificationText.text = regionIndex == RegionNames.Length - 1
+        Notify(regionIndex == RegionNames.Length - 1
             ? "Tüm ışık tohumları bulundu! Lumora'nın ışığı geri dönüyor."
-            : "Portal açıldı. Sonraki bölgeye geçebilirsin.";
+            : "Portal açıldı. Sonraki bölgeye geçebilirsin.");
         UpdateProgressUi();
         return true;
     }
 
-    public void TryUsePortal(int regionIndex)
+    private void SendProgressEvent(string eventType, int regionIndex, string value)
     {
-        if (!IsValidRegion(regionIndex) || regionIndex != activeRegionIndex)
+        if (eventSender == null || !eventSender.isActiveAndEnabled)
+        {
+            Debug.LogWarning("Bölge eventi gönderilemedi: GameEventSender aktif değil.", this);
+            return;
+        }
+        eventSender.SendEvent(
+            ChildId,
+            eventType,
+            RegionIds[regionIndex],
+            ProgressType,
+            value
+        );
+    }
+
+    public void TryUsePortal(int regionIndex, string destinationSceneName = null)
+    {
+        EnsureInitialized();
+        if (!hasStarted || sceneTransitionInProgress ||
+            !IsValidRegion(regionIndex) || regionIndex != activeRegionIndex)
         {
             return;
         }
 
         if (!collectedSeeds[regionIndex])
         {
-            notificationText.text =
-                "Portal kapalı. Önce bu bölgedeki ışık tohumunu bul.";
+            Notify("Portal kapalı. Önce bu bölgedeki ışık tohumunu bul.");
             UpdateProgressUi();
             return;
         }
 
         if (regionIndex == RegionNames.Length - 1)
         {
-            notificationText.text =
-                "Lumora yeniden aydınlandı! Dört ışık tohumunu da buldun.";
+            Notify("Lumora yeniden aydınlandı! Dört ışık tohumunu da buldun.");
             UpdateProgressUi();
             return;
         }
 
         int nextRegionIndex = regionIndex + 1;
+        if (useSceneTransitions)
+        {
+            OpenNextScene(nextRegionIndex, destinationSceneName);
+            return;
+        }
+        if (!CanMoveToRegion(nextRegionIndex))
+        {
+            Notify(RegionNames[nextRegionIndex] + " yakında.");
+            return;
+        }
         MovePlayerToRegion(nextRegionIndex);
         activeRegionIndex = nextRegionIndex;
-        notificationText.text =
-            RegionNames[nextRegionIndex] + " bölgesine ulaştın.";
+        Notify(RegionNames[nextRegionIndex] + " bölgesine ulaştın.");
         MarkRegionExplored(nextRegionIndex);
         UpdateProgressUi();
+    }
+
+    private void OpenNextScene(int nextRegionIndex, string destinationSceneName)
+    {
+        // An unfinished region must not be marked explored or loaded as a
+        // placeholder. A future scene can be wired on the same PortalTrigger.
+        if (string.IsNullOrWhiteSpace(destinationSceneName) ||
+            !Application.CanStreamedLevelBeLoaded(destinationSceneName) ||
+            SceneManager.GetActiveScene().name == destinationSceneName)
+        {
+            Notify(RegionNames[nextRegionIndex] + " yakında.");
+            return;
+        }
+
+        sceneTransitionInProgress = true;
+        Notify(RegionNames[nextRegionIndex] + " yükleniyor...");
+        try
+        {
+            // Single unloads the current scene and its managers together.
+            // The destination's controller owns its own area_explored event.
+            AsyncOperation load = SceneManager.LoadSceneAsync(destinationSceneName, LoadSceneMode.Single);
+            if (load == null)
+            {
+                sceneTransitionInProgress = false;
+                Notify(RegionNames[nextRegionIndex] + " yakında.");
+            }
+        }
+        catch (System.Exception exception)
+        {
+            sceneTransitionInProgress = false;
+            Notify(RegionNames[nextRegionIndex] + " yakında.");
+            Debug.LogWarning("Portal sahnesi açılamadı: " + exception.Message, this);
+        }
+    }
+
+    private bool CanMoveToRegion(int regionIndex)
+    {
+        return player != null && regionSpawnPoints != null &&
+               activeRegionIndex < regionSpawnPoints.Length &&
+               regionIndex < regionSpawnPoints.Length &&
+               regionSpawnPoints[activeRegionIndex] != null &&
+               regionSpawnPoints[regionIndex] != null;
     }
 
     private void MovePlayerToRegion(int regionIndex)
@@ -137,14 +252,15 @@ public class RegionProgressController : MonoBehaviour
         CharacterController characterController =
             player.GetComponent<CharacterController>();
 
-        if (characterController != null)
+        bool controllerWasEnabled = characterController != null && characterController.enabled;
+        if (controllerWasEnabled)
         {
             characterController.enabled = false;
         }
 
         player.position = destination;
 
-        if (characterController != null)
+        if (controllerWasEnabled)
         {
             characterController.enabled = true;
         }
@@ -168,61 +284,80 @@ public class RegionProgressController : MonoBehaviour
         }
 
         exploredRegions[regionIndex] = true;
-        eventSender.SendEvent(
-            ChildId,
-            "area_explored",
-            RegionIds[regionIndex],
-            ProgressType,
-            "Bölge keşfedildi: " + RegionNames[regionIndex]
-        );
+        SendProgressEvent("area_explored", regionIndex,
+            "Bölge keşfedildi: " + RegionNames[regionIndex]);
     }
 
     private void UpdateProgressUi()
     {
-        activeRegionText.text =
-            "Aktif Bölge: " + RegionNames[activeRegionIndex];
-        seedCountText.text =
-            "Işık Tohumu: " + collectedSeedCount + " / " + RegionNames.Length;
+        SetText(activeRegionText, "Aktif Bölge: " + RegionNames[activeRegionIndex]);
+        SetText(seedCountText, "Işık Tohumu: " + collectedSeedCount + " / " + RegionNames.Length);
 
         if (!collectedSeeds[activeRegionIndex])
         {
-            portalStatusText.text = "Portal: Kilitli";
-            objectiveText.text =
-                "Hedef: Bu bölgedeki ışık tohumunu bul.";
+            SetText(portalStatusText, "Portal: Kilitli");
+            SetText(objectiveText, "Hedef: Bu bölgedeki ışık tohumunu bul.");
             return;
         }
 
         if (activeRegionIndex == RegionNames.Length - 1)
         {
-            portalStatusText.text = "Portal: Final Hedefi Açık";
-            objectiveText.text =
-                "Hedef: Lumora'nın ışığını geri getir.";
+            SetText(portalStatusText, "Portal: Final Hedefi Açık");
+            SetText(objectiveText, "Hedef: Lumora'nın ışığını geri getir.");
             return;
         }
 
-        portalStatusText.text = "Portal: Açık";
-        objectiveText.text =
-            "Hedef: Açık portaldan sonraki bölgeye geç.";
+        SetText(portalStatusText, "Portal: Açık");
+        SetText(objectiveText, "Hedef: Açık portaldan sonraki bölgeye geç.");
+    }
+
+    private void RefreshPortals()
+    {
+        if (portals == null)
+        {
+            return;
+        }
+        for (int i = 0; i < portals.Length; i++)
+        {
+            int regionIndex = useSceneTransitions ? sceneRegionIndex : i;
+            if (portals[i] != null && IsValidRegion(regionIndex))
+            {
+                portals[i].SetUnlocked(collectedSeeds[regionIndex]);
+            }
+        }
+    }
+
+    private void Notify(string message)
+    {
+        SetText(notificationText, message);
+    }
+
+    private static void SetText(Text label, string message)
+    {
+        if (label != null)
+        {
+            label.text = message;
+        }
     }
 
     private bool HasRequiredReferences()
     {
-        int regionCount = RegionNames.Length;
-        return eventSender != null &&
-               player != null &&
-               mainCamera != null &&
-               regionSpawnPoints != null &&
-               regionSpawnPoints.Length == regionCount &&
-               lightSeeds != null &&
-               lightSeeds.Length == regionCount &&
-               portals != null &&
-               portals.Length == regionCount &&
-               regionOneGuide != null &&
-               activeRegionText != null &&
-               seedCountText != null &&
-               portalStatusText != null &&
-               objectiveText != null &&
-               notificationText != null;
+        int regionCount = useSceneTransitions ? 1 : RegionNames.Length;
+        if (eventSender == null || player == null ||
+            regionSpawnPoints == null || regionSpawnPoints.Length != regionCount ||
+            lightSeeds == null || lightSeeds.Length != regionCount ||
+            portals == null || portals.Length != regionCount)
+        {
+            return false;
+        }
+        for (int i = 0; i < regionCount; i++)
+        {
+            if (regionSpawnPoints[i] == null || lightSeeds[i] == null || portals[i] == null)
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static bool IsValidRegion(int regionIndex)

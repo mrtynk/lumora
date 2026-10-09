@@ -5,6 +5,10 @@ public class PuzzleTrigger : MonoBehaviour
 {
     [Header("Bağlantılar")]
     [SerializeField] private PuzzlePopupUI puzzlePopup;
+    [SerializeField] private PlayerController playerController;
+
+    [Tooltip("Boş bırakılırsa bulmaca seçim menüsü açılır. hidden_object, memory_match veya pattern_puzzle kullanın.")]
+    [SerializeField] private string preferredPuzzleType = "";
 
     private bool playerIsNearby;
 
@@ -15,6 +19,11 @@ public class PuzzleTrigger : MonoBehaviour
 
     private void Update()
     {
+        if (playerController != null && !playerController.isActiveAndEnabled)
+        {
+            return;
+        }
+
         if (playerIsNearby && Input.GetKeyDown(KeyCode.E))
         {
             if (puzzlePopup == null)
@@ -23,7 +32,14 @@ public class PuzzleTrigger : MonoBehaviour
                 return;
             }
 
-            puzzlePopup.OpenPopup();
+            if (string.IsNullOrEmpty(preferredPuzzleType))
+            {
+                puzzlePopup.OpenPopup();
+            }
+            else
+            {
+                puzzlePopup.OpenPuzzle(preferredPuzzleType);
+            }
         }
     }
 

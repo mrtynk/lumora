@@ -6,8 +6,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.Video;
 
-// Temporary integration check, removed after verification.
-[InitializeOnLoad]
+// Explicit, opt-in regression check for the technical prototype.
 public static class LumoraIntroPlaybackVerification
 {
     private const string Key = "Lumora.VideoVerification.SkipOff.1";
@@ -30,10 +29,28 @@ public static class LumoraIntroPlaybackVerification
     private static double testStarted;
     private static bool originalRunInBackground;
 
-    static LumoraIntroPlaybackVerification()
+    [MenuItem("Tools/Lumora/Tests/Verify Prototype Intro Playback")]
+    public static void Run()
     {
-        if (SessionState.GetInt(Key, 0) == 2) return;
+        if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+        if (SceneManager.GetActiveScene().path != "Assets/Scenes/PrototypeScene.unity")
+        {
+            Debug.LogWarning("Video kontrolü için PrototypeScene'i açın.");
+            return;
+        }
+        SessionState.SetInt(Key, 0);
+        phase = testIndex = 0;
         deadline = EditorApplication.timeSinceStartup + 3;
+        EditorApplication.update -= Tick;
+        EditorApplication.update += Tick;
+    }
+
+    [InitializeOnLoadMethod]
+    private static void ResumeRunningCheck()
+    {
+        if (SessionState.GetInt(Key, 0) != 1) return;
+        deadline = EditorApplication.timeSinceStartup + 3;
+        EditorApplication.update -= Tick;
         EditorApplication.update += Tick;
     }
 
