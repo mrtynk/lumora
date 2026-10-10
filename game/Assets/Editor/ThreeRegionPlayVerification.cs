@@ -14,10 +14,10 @@ using UnityEngine.UI;
 
 // Opt-in integration test. It uses the actual scene, colliders and HTTP sender,
 // but receives requests in memory, never in the user's backend/database.
-public static class TwoRegionPlayVerification
+public static class ThreeRegionPlayVerification
 {
-    private const string Key = "Lumora.TwoRegionTest";
-    private const string Report = "Assets/Editor/TwoRegionPlayVerification.results.txt";
+    private const string Key = "Lumora.ThreeRegionTest";
+    private const string Report = "Assets/Editor/ThreeRegionPlayVerification.results.txt";
     private static readonly ConcurrentQueue<string> requests = new ConcurrentQueue<string>();
     private static TcpListener server;
     private static string endpoint;
@@ -33,12 +33,12 @@ public static class TwoRegionPlayVerification
         new Vector2(-4,11), new Vector2(-15,22), new Vector2(-5,28),
         new Vector2(8,29), new Vector2(20,37) };
 
-    [MenuItem("Tools/Lumora/Tests/Verify Two Region Flow")]
+    [MenuItem("Tools/Lumora/Tests/Verify Three Region Flow")]
     public static void Run()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) return;
         if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
-        if (!RegionSceneLoader.CanLoad("SisliOrman")) throw new Exception("Önce Sisli Orman sahnesini oluşturun.");
+        if (!RegionSceneLoader.CanLoad("KristalMagara")) throw new Exception("Önce Sisli Orman sahnesini oluşturun.");
         EditorSceneManager.OpenScene(LumoraLevelSceneBuilder.ScenePath);
         SessionState.SetBool(Key, true);
         EditorApplication.isPlaying = true;
@@ -53,7 +53,7 @@ public static class TwoRegionPlayVerification
         {
             phase = errors = 0;
             readyAt = EditorApplication.timeSinceStartup + 2;
-            timeout = readyAt + 150;
+            timeout = readyAt + 240;
             EditorApplication.update -= Tick;
             EditorApplication.update += Tick;
         }
@@ -111,7 +111,7 @@ public static class TwoRegionPlayVerification
             switch (phase)
             {
                 case 0:
-                    File.WriteAllText(Report, "Two-region integration / Unity " + Application.unityVersion + "\n");
+                    File.WriteAllText(Report, "Three-region integration / Unity " + Application.unityVersion + "\n");
                     previousBackground = Application.runInBackground; Application.runInBackground = true;
                     Application.logMessageReceived += Log;
                     while (requests.TryDequeue(out _)) { }
@@ -149,29 +149,88 @@ public static class TwoRegionPlayVerification
                     Check(!progress.TryCollectLightSeed(0), "Prior seed collected twice.");
                     progress.TryUsePortal(1, "KristalMagara");
                     Write("PASS actual valley walk, seed trigger, portal scene load, seed 1/4 and single manager; no second intro.");
-                    PrepareWalk(SisliOrmanSceneBuilder.Route.Skip(1).Take(SisliOrmanSceneBuilder.Route.Length - 2).ToArray()); phase = 4; break;
+                    PrepareWalk(SisliOrmanSceneBuilder.Route.Skip(1).ToArray()); phase = 4; break;
                 case 4:
+                    if (SceneManager.GetActiveScene().name == "KristalMagara")
+                    { phase = 5; readyAt = EditorApplication.timeSinceStartup + 1; break; }
+                    if (player != null && player.gameObject.scene.name == "SisliOrman") Walk();
+                    break;
+                case 5:
+                    progress = Find<RegionProgressController>();
+                    KristalMagaraSceneBuilder.Validate(SceneManager.GetActiveScene());
+                    Check(progress.HasStarted && progress.ActiveRegionIndex == 2 && progress.CollectedSeedCount == 2, "Cave progress not 2/4.");
+                    Check(SelectedCharacterState.SelectedCharacter == "male", "Character lost.");
+                    Check(Find<MainMenuUI>() == null && Find<StoryIntroUI>() == null && Find<IntroVideoUI>() == null, "Opening UI repeated.");
+                    Check(!Find<KristalMagaraLevelController>().LightPathCompleted && !Find<LightSeedCollectible>().gameObject.activeSelf, "Seed accessible before light path.");
+                    progress.TryUsePortal(2, "KaranlikTepe");
+                    Check(SceneManager.GetActiveScene().name == "KristalMagara", "Locked exit allowed transition.");
+                    Write("PASS actual Forest -> Cave scene transition, seed 2/4, character, unique player/camera/listener/EventSystem/sender.");
+                    PrepareWalk(KristalMagaraSceneBuilder.Route.Skip(1).Take(7).ToArray());
+                    phase = 6; break;
+                case 6:
                     if (!Walk()) break;
                     player.enabled = true;
-                    Check(progress.IsSeedCollected(1) && progress.CollectedSeedCount == 2, "Second seed not collected by collider.");
-                    Check(!progress.TryCollectLightSeed(1), "Second seed duplicated.");
-                    var portal = new SerializedObject(Find<PortalTrigger>());
-                    Check(!((Collider)portal.FindProperty("blockingCollider").objectReferenceValue).enabled, "Crystal portal remained locked.");
-                    progress.TryUsePortal(1, "UnbuiltRegionForFallbackTest");
-                    progress.BeginExploration();
-                    Write("PASS forest route/bridge/seed, count 2/4, crystal portal unlocked; missing-scene fallback handled.");
-                    phase = 5; readyAt = EditorApplication.timeSinceStartup + 2; break;
-                case 5:
-                    foreach (string region in new[] { "isikli_vadi", "sisli_orman" })
+                    var first = UnityEngine.Object.FindObjectsByType<CrystalLightNode>(FindObjectsSortMode.None).Single(n => n.name == "Crystal_A");
+                    var cave = Find<KristalMagaraLevelController>();
+                    Check(cave.TryRotate(first), "First crystal did not rotate.");
+                    Check(!cave.TryRotate(first), "Crystal cooldown failed.");
+                    Check(!cave.LightPathCompleted, "One crystal opened door.");
+                    PrepareWalk(new[] { new Vector2(8,20) }); phase = 7;
+                    readyAt = EditorApplication.timeSinceStartup + .6; break;
+                case 7:
+                    if (!Walk()) break;
+                    player.enabled = true;
+                    var second = UnityEngine.Object.FindObjectsByType<CrystalLightNode>(FindObjectsSortMode.None).Single(n => n.name == "Crystal_B");
+                    var controller = Find<KristalMagaraLevelController>();
+                    bool turned = controller.TryRotate(second);
+                    Check(turned && controller.LightPathCompleted, "Light path did not complete: turned=" + turned + " player=" + player.transform.position + " node=" + second.transform.position + " aligned=" + second.IsAligned);
+                    Check(!controller.TryRotate(second), "Solved crystal accepted another action.");
+                    Write("PASS cave bends, slope, stepping stones; two near-player rotations, cooldown, gate and seed activation.");
+                    PrepareWalk(KristalMagaraSceneBuilder.Route.Skip(9).ToArray());
+                    phase = 8; break;
+                case 8:
+                    if (!Walk()) break;
+                    player.enabled = true;
+                    Check(progress.CollectedSeedCount == 3 && progress.IsSeedCollected(2), "Third seed not collected.");
+                    Check(((Text)new SerializedObject(progress).FindProperty("seedCountText").objectReferenceValue).text == "Işık Tohumu: 3 / 4", "HUD not 3/4.");
+                    Check(!progress.TryCollectLightSeed(2), "Third seed duplicated.");
+                    Check(!((Collider)new SerializedObject(Find<PortalTrigger>()).FindProperty("blockingCollider").objectReferenceValue).enabled, "Exit still blocked.");
+                    progress.TryUsePortal(2, "KaranlikTepe");
+                    Check(((Text)new SerializedObject(progress).FindProperty("notificationText").objectReferenceValue).text == "Karanlık Tepe yakında.", "Placeholder missing.");
+                    Write("PASS seed 3/4, reward once, Dark Hill exit unlocked and placeholder.");
+                    // Optional NPC and puzzle completion must not alter the seed count.
+                    Find<NpcDialogueUI>().OpenDialogue(); Click(Find<NpcDialogueUI>(), "helpButton");
+                    Find<PuzzlePopupUI>().OpenPuzzle("hidden_object");
+                    Click(Find<HiddenObjectPuzzleUI>(), "hintButton");
+                    Click(Find<HiddenObjectPuzzleUI>(), "lightSeedButton");
+                    phase = 9; readyAt = EditorApplication.timeSinceStartup + 1; break;
+                case 9:
+                    Find<PuzzlePopupUI>().OpenPuzzle("pattern_puzzle");
+                    Click(Find<PatternPuzzleUI>(), "blueButton");
+                    phase = 10; readyAt = EditorApplication.timeSinceStartup + 2; break;
+                case 10:
+                    Check(progress.CollectedSeedCount == 3, "Optional content changed progression.");
+                    RegionSceneLoader.Load("KristalMagara");
+                    phase = 11; readyAt = EditorApplication.timeSinceStartup + 3; break;
+                case 11:
+                    progress = Find<RegionProgressController>();
+                    Check(progress.CollectedSeedCount == 3 && Find<KristalMagaraLevelController>().LightPathCompleted, "Reload lost state.");
+                    Check(!Find<LightSeedCollectible>().gameObject.activeSelf, "Reload restored collected seed.");
+                    foreach (string region in new[] { "isikli_vadi", "sisli_orman", "kristal_magara" })
                         foreach (string type in new[] { "area_explored", "reward_collected" })
                             Check(requests.Count(x => x.Contains("\"region\":\"" + region + "\"") && x.Contains("\"eventType\":\"" + type + "\"")) == 1, "Wrong event count: " + region + "/" + type);
+                    Check(requests.Count(x => x.Contains("\"puzzleType\":\"crystal_light\"") && x.Contains("\"eventType\":\"puzzle_solved\"")) == 1, "Light solve duplicate.");
+                    Check(requests.Count(x => x.Contains("\"puzzleType\":\"crystal_light\"") && x.Contains("\"eventType\":\"choice_made\"")) == 2, "Light choices wrong.");
+                    foreach (string optional in new[] { "hidden_object", "pattern_puzzle" })
+                        Check(requests.Any(x => x.Contains("\"region\":\"kristal_magara\"") && x.Contains("\"puzzleType\":\"" + optional + "\"") && x.Contains("\"eventType\":\"puzzle_solved\"")), "Missing optional event: " + optional);
+                    Check(requests.Any(x => x.Contains("\"region\":\"kristal_magara\"") && x.Contains("\"eventType\":\"npc_helped\"")), "Missing NPC help event.");
                     Check(errors == 0, "Console errors: " + errors);
-                    Write("PASS HTTP: area_explored/reward_collected exactly once per region; Console errors=0.");
-                    // A new run must not inherit these two seeds.
+                    Write("PASS HTTP progression: area/reward once per region; crystal choice=2/solved=1; reload no duplicates; Console errors=0.");
+                    Write("PASS NPC and two optional puzzles. Backend unavailable; in-memory HTTP receiver, no database test.");
                     RegionProgressController.ResetAdventure();
-                    Check(progress.CollectedSeedCount == 0, "Session reset failed.");
-                    Write("PASS new-game reset. Database/device performance not covered by this local receiver test.");
-                    Cleanup(); Debug.Log("Two-region Play verification PASSED."); EditorApplication.isPlaying = false; break;
+                    Check(progress.CollectedSeedCount == 0 && !Find<KristalMagaraLevelController>().LightPathCompleted, "Session reset failed.");
+                    Write("PASS session reset. Android performance remains untested.");
+                    Cleanup(); Debug.Log("Three-region Play verification PASSED."); EditorApplication.isPlaying = false; break;
             }
         }
         catch (Exception error)

@@ -54,12 +54,22 @@ public class RegionProgressController : MonoBehaviour
     // four-platform prototype continues using its own instance arrays.
     private static readonly bool[] sessionSeeds = new bool[4];
     private static readonly bool[] sessionExplored = new bool[4];
+    private static readonly System.Collections.Generic.HashSet<string> sessionMechanics =
+        new System.Collections.Generic.HashSet<string>();
+
+    public bool IsMechanicCompleted(string key) => sessionMechanics.Contains(key);
+
+    public bool TryCompleteMechanic(string key)
+    {
+        return hasStarted && useSceneTransitions && !string.IsNullOrWhiteSpace(key) && sessionMechanics.Add(key);
+    }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     public static void ResetAdventure()
     {
         System.Array.Clear(sessionSeeds, 0, sessionSeeds.Length);
         System.Array.Clear(sessionExplored, 0, sessionExplored.Length);
+        sessionMechanics.Clear();
     }
 
     public int CollectedSeedCount
