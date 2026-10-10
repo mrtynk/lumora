@@ -22,7 +22,9 @@ public class PortalTrigger : MonoBehaviour
 
         if (blockingCollider != null)
         {
-            blockingCollider.enabled = isFinalPortal || !isUnlocked;
+            // The technical prototype's final monument stays solid. A real
+            // destination scene uses the same unlocked portal as other levels.
+            blockingCollider.enabled = !isUnlocked || (isFinalPortal && string.IsNullOrEmpty(destinationSceneName));
         }
     }
 

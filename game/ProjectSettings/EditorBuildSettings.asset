@@ -4,7 +4,22 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/IsikliVadi.unity
+    guid: 801a86bf1db6cc74cb30cb7369d66317
+  - enabled: 1
+    path: Assets/Scenes/SisliOrman.unity
+    guid: 53d46455a83a20341a144e32cee63e19
+  - enabled: 1
+    path: Assets/Scenes/KristalMagara.unity
+    guid: dcbba237ab9d1254c8ee014c28e31346
+  - enabled: 1
+    path: Assets/Scenes/KaranlikTepe.unity
+    guid: 2423f472d60e49c44892e296de2afdcf
+  - enabled: 1
+    path: Assets/Scenes/LumoraFinal.unity
+    guid: 8dc54909b6f96d540bf5c96d26a2fe4c
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   m_UseUCBPForAssetBundles: 0

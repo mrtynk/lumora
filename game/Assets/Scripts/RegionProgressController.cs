@@ -217,6 +217,11 @@ public class RegionProgressController : MonoBehaviour
 
         if (regionIndex == RegionNames.Length - 1)
         {
+            if (useSceneTransitions && CollectedSeedCount == RegionNames.Length)
+            {
+                OpenNextScene(RegionNames.Length, destinationSceneName);
+                return;
+            }
             Notify("Lumora yeniden aydınlandı! Dört ışık tohumunu da buldun.");
             UpdateProgressUi();
             return;
@@ -242,18 +247,19 @@ public class RegionProgressController : MonoBehaviour
 
     private void OpenNextScene(int nextRegionIndex, string destinationSceneName)
     {
+        string destinationLabel = nextRegionIndex < RegionNames.Length ? RegionNames[nextRegionIndex] : "Lumora Finali";
         // An unfinished region must not be marked explored or loaded as a
         // placeholder. A future scene can be wired on the same PortalTrigger.
         if (string.IsNullOrWhiteSpace(destinationSceneName) ||
             !RegionSceneLoader.CanLoad(destinationSceneName) ||
             SceneManager.GetActiveScene().name == destinationSceneName)
         {
-            Notify(RegionNames[nextRegionIndex] + " yakında.");
+            Notify(destinationLabel + " yakında.");
             return;
         }
 
         sceneTransitionInProgress = true;
-        Notify(RegionNames[nextRegionIndex] + " yükleniyor...");
+        Notify(destinationLabel + " yükleniyor...");
         try
         {
             // Single unloads the current scene and its managers together.
@@ -262,13 +268,13 @@ public class RegionProgressController : MonoBehaviour
             if (load == null)
             {
                 sceneTransitionInProgress = false;
-                Notify(RegionNames[nextRegionIndex] + " yakında.");
+                Notify(destinationLabel + " yakında.");
             }
         }
         catch (System.Exception exception)
         {
             sceneTransitionInProgress = false;
-            Notify(RegionNames[nextRegionIndex] + " yakında.");
+            Notify(destinationLabel + " yakında.");
             Debug.LogWarning("Portal sahnesi açılamadı: " + exception.Message, this);
         }
     }
@@ -335,14 +341,15 @@ public class RegionProgressController : MonoBehaviour
         if (!collectedSeeds[activeRegionIndex])
         {
             SetText(portalStatusText, "Portal: Kilitli");
-            SetText(objectiveText, "Hedef: Bu bölgedeki ışık tohumunu bul.");
+            SetText(objectiveText, useSceneTransitions && activeRegionIndex == RegionNames.Length - 1
+                ? "Hedef: Son Işık Tohumu'nu bul." : "Hedef: Bu bölgedeki ışık tohumunu bul.");
             return;
         }
 
         if (activeRegionIndex == RegionNames.Length - 1)
         {
             SetText(portalStatusText, "Portal: Final Hedefi Açık");
-            SetText(objectiveText, "Hedef: Lumora'nın ışığını geri getir.");
+            SetText(objectiveText, useSceneTransitions ? "Hedef: Işık Ağacı'na geri dön." : "Hedef: Lumora'nın ışığını geri getir.");
             return;
         }
 

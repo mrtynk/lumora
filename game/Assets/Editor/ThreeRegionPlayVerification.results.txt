@@ -2,7 +2,7 @@ Three-region integration / Unity 6000.3.14f1
 PASS actual valley walk, seed trigger, portal scene load, seed 1/4 and single manager; no second intro.
 PASS actual Forest -> Cave scene transition, seed 2/4, character, unique player/camera/listener/EventSystem/sender.
 PASS cave bends, slope, stepping stones; two near-player rotations, cooldown, gate and seed activation.
-PASS seed 3/4, reward once, Dark Hill exit unlocked and placeholder.
+PASS seed 3/4, reward once, Dark Hill exit unlocked; missing-scene fallback safe.
 PASS HTTP progression: area/reward once per region; crystal choice=2/solved=1; reload no duplicates; Console errors=0.
 PASS NPC and two optional puzzles. Backend unavailable; in-memory HTTP receiver, no database test.
 PASS session reset. Android performance remains untested.

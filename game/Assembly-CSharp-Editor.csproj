@@ -49,17 +49,24 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Editor\IsikliVadiPlayVerification.cs" />
+    <Compile Include="Assets\Editor\ThreeRegionPlayVerification.cs" />
     <Compile Include="Assets\Editor\IsikliVadiEnvironmentBuilder.cs" />
     <Compile Include="Assets\Editor\SisliOrmanSceneBuilder.cs" />
     <Compile Include="Assets\Editor\TwoRegionPlayVerification.cs" />
     <Compile Include="Assets\Editor\IsikliVadiSceneValidation.cs" />
     <Compile Include="Assets\Editor\LumoraIntroPlaybackVerification.cs" />
     <Compile Include="Assets\Editor\LumoraLevelSceneBuilder.cs" />
+    <Compile Include="Assets\Editor\KristalMagaraSceneBuilder.cs" />
+    <Compile Include="Assets\Editor\KaranlikTepeSceneBuilder.cs" />
     <Compile Include="Assets\Editor\LumoraPrototypeSceneBuilder.cs" />
+    <Compile Include="Assets\Editor\LumoraFinalSceneBuilder.cs" />
+    <Compile Include="Assets\Editor\FullAdventurePlayVerification.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Assets\Editor\ThreeRegionPlayVerification.results.txt" />
     <None Include="Assets\Editor\IsikliVadiPlayVerification.results.txt" />
     <None Include="Assets\Editor\TwoRegionPlayVerification.results.txt" />
+    <None Include="Assets\Editor\FullAdventurePlayVerification.results.txt" />
     <None Include="Assets\Editor\LumoraIntroPlaybackVerification.results.txt" />
   </ItemGroup>
   <ItemGroup>

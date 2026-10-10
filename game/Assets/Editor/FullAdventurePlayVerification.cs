@@ -14,10 +14,10 @@ using UnityEngine.UI;
 
 // Opt-in integration test. It uses the actual scene, colliders and HTTP sender,
 // but receives requests in memory, never in the user's backend/database.
-public static class ThreeRegionPlayVerification
+public static class FullAdventurePlayVerification
 {
-    private const string Key = "Lumora.ThreeRegionTest";
-    private const string Report = "Assets/Editor/ThreeRegionPlayVerification.results.txt";
+    private const string Key = "Lumora.FullAdventureTest";
+    private const string Report = "Assets/Editor/FullAdventurePlayVerification.results.txt";
     private static readonly ConcurrentQueue<string> requests = new ConcurrentQueue<string>();
     private static TcpListener server;
     private static string endpoint;
@@ -33,12 +33,12 @@ public static class ThreeRegionPlayVerification
         new Vector2(-4,11), new Vector2(-15,22), new Vector2(-5,28),
         new Vector2(8,29), new Vector2(20,37) };
 
-    [MenuItem("Tools/Lumora/Tests/Verify Three Region Flow")]
+    [MenuItem("Tools/Lumora/Tests/Verify Full Adventure")]
     public static void Run()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) return;
         if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
-        if (!RegionSceneLoader.CanLoad("KristalMagara")) throw new Exception("Önce Sisli Orman sahnesini oluşturun.");
+        if (!RegionSceneLoader.CanLoad("KaranlikTepe") || !RegionSceneLoader.CanLoad("LumoraFinal")) throw new Exception("Önce son bölge ve final sahnelerini oluşturun.");
         EditorSceneManager.OpenScene(LumoraLevelSceneBuilder.ScenePath);
         SessionState.SetBool(Key, true);
         EditorApplication.isPlaying = true;
@@ -53,7 +53,7 @@ public static class ThreeRegionPlayVerification
         {
             phase = errors = 0;
             readyAt = EditorApplication.timeSinceStartup + 2;
-            timeout = readyAt + 240;
+            timeout = readyAt + 420;
             EditorApplication.update -= Tick;
             EditorApplication.update += Tick;
         }
@@ -111,7 +111,11 @@ public static class ThreeRegionPlayVerification
             switch (phase)
             {
                 case 0:
-                    File.WriteAllText(Report, "Three-region integration / Unity " + Application.unityVersion + "\n");
+                    File.WriteAllText(Report, "Full adventure integration / Unity " + Application.unityVersion + "\n");
+                    foreach (string sceneName in new[]{"IsikliVadi","SisliOrman","KristalMagara","KaranlikTepe","LumoraFinal"})
+                        Check(Application.CanStreamedLevelBeLoaded(sceneName), "Build scene missing: " + sceneName);
+                    Check(SceneUtility.GetScenePathByBuildIndex(0)==LumoraLevelSceneBuilder.ScenePath,"Wrong startup scene in build.");
+                    Write("PASS five enabled build scenes; IsikliVadi is startup scene.");
                     previousBackground = Application.runInBackground; Application.runInBackground = true;
                     Application.logMessageReceived += Log;
                     while (requests.TryDequeue(out _)) { }
@@ -186,59 +190,159 @@ public static class ThreeRegionPlayVerification
                     Check(turned && controller.LightPathCompleted, "Light path did not complete: turned=" + turned + " player=" + player.transform.position + " node=" + second.transform.position + " aligned=" + second.IsAligned);
                     Check(!controller.TryRotate(second), "Solved crystal accepted another action.");
                     Write("PASS cave bends, slope, stepping stones; two near-player rotations, cooldown, gate and seed activation.");
-                    // Stop at the seed: the full-adventure test covers the now-real fourth region.
                     PrepareWalk(KristalMagaraSceneBuilder.Route.Skip(9).Take(2).ToArray());
                     phase = 8; break;
                 case 8:
                     if (!Walk()) break;
-                    if (progress.CollectedSeedCount < 3) break;
+                    if (progress.CollectedSeedCount < 3) break; // Allow the next physics trigger tick.
                     player.enabled = true;
                     Check(progress.CollectedSeedCount == 3 && progress.IsSeedCollected(2), "Third seed not collected.");
                     Check(((Text)new SerializedObject(progress).FindProperty("seedCountText").objectReferenceValue).text == "Işık Tohumu: 3 / 4", "HUD not 3/4.");
                     Check(!progress.TryCollectLightSeed(2), "Third seed duplicated.");
                     Check(!((Collider)new SerializedObject(Find<PortalTrigger>()).FindProperty("blockingCollider").objectReferenceValue).enabled, "Exit still blocked.");
-                    progress.TryUsePortal(2, "UnbuiltRegionForFallbackTest");
-                    Check(SceneManager.GetActiveScene().name == "KristalMagara", "Missing-scene fallback failed.");
-                    Write("PASS seed 3/4, reward once, Dark Hill exit unlocked; missing-scene fallback safe.");
-                    // Optional NPC and puzzle completion must not alter the seed count.
-                    Find<NpcDialogueUI>().OpenDialogue(); Click(Find<NpcDialogueUI>(), "helpButton");
-                    Find<PuzzlePopupUI>().OpenPuzzle("hidden_object");
-                    Click(Find<HiddenObjectPuzzleUI>(), "hintButton");
-                    Click(Find<HiddenObjectPuzzleUI>(), "lightSeedButton");
-                    phase = 9; readyAt = EditorApplication.timeSinceStartup + 1; break;
+                    Write("PASS seed 3/4 and crystal gate; first three regions retain progression.");
+                    PrepareWalk(new[]{new Vector2(30,48)}); phase=9; break;
                 case 9:
-                    Find<PuzzlePopupUI>().OpenPuzzle("pattern_puzzle");
-                    Click(Find<PatternPuzzleUI>(), "blueButton");
-                    phase = 10; readyAt = EditorApplication.timeSinceStartup + 2; break;
+                    if(SceneManager.GetActiveScene().name=="KaranlikTepe")
+                    { phase=10; readyAt=EditorApplication.timeSinceStartup+1; break; }
+                    if(player!=null && player.gameObject.scene.name=="KristalMagara")Walk();
+                    break;
                 case 10:
-                    Check(progress.CollectedSeedCount == 3, "Optional content changed progression.");
-                    RegionSceneLoader.Load("KristalMagara");
-                    phase = 11; readyAt = EditorApplication.timeSinceStartup + 3; break;
+                    progress=Find<RegionProgressController>();
+                    KaranlikTepeSceneBuilder.Validate(SceneManager.GetActiveScene());
+                    Check(progress.HasStarted && progress.ActiveRegionIndex==3 && progress.CollectedSeedCount==3,"Hill initial state not 3/4.");
+                    Check(SelectedCharacterState.SelectedCharacter=="male","Character lost in hill.");
+                    Check(Find<MainMenuUI>()==null && Find<IntroVideoUI>()==null && Find<StoryIntroUI>()==null,"Opening UI repeated in hill.");
+                    Check(!Find<LightSeedCollectible>().gameObject.activeSelf,"Fourth seed accessible before beacons.");
+                    progress.TryUsePortal(3,"LumoraFinal");
+                    Check(SceneManager.GetActiveScene().name=="KaranlikTepe","Locked final portal allowed entry.");
+                    PrepareWalk(KaranlikTepeSceneBuilder.Route.Skip(1).Take(5).ToArray());
+                    phase=11; break;
                 case 11:
-                    progress = Find<RegionProgressController>();
-                    Check(progress.CollectedSeedCount == 3 && Find<KristalMagaraLevelController>().LightPathCompleted, "Reload lost state.");
-                    Check(!Find<LightSeedCollectible>().gameObject.activeSelf, "Reload restored collected seed.");
-                    foreach (string region in new[] { "isikli_vadi", "sisli_orman", "kristal_magara" })
-                        foreach (string type in new[] { "area_explored", "reward_collected" })
-                            Check(requests.Count(x => x.Contains("\"region\":\"" + region + "\"") && x.Contains("\"eventType\":\"" + type + "\"")) == 1, "Wrong event count: " + region + "/" + type);
-                    Check(requests.Count(x => x.Contains("\"puzzleType\":\"crystal_light\"") && x.Contains("\"eventType\":\"puzzle_solved\"")) == 1, "Light solve duplicate.");
-                    Check(requests.Count(x => x.Contains("\"puzzleType\":\"crystal_light\"") && x.Contains("\"eventType\":\"choice_made\"")) == 2, "Light choices wrong.");
-                    foreach (string optional in new[] { "hidden_object", "pattern_puzzle" })
-                        Check(requests.Any(x => x.Contains("\"region\":\"kristal_magara\"") && x.Contains("\"puzzleType\":\"" + optional + "\"") && x.Contains("\"eventType\":\"puzzle_solved\"")), "Missing optional event: " + optional);
-                    Check(requests.Any(x => x.Contains("\"region\":\"kristal_magara\"") && x.Contains("\"eventType\":\"npc_helped\"")), "Missing NPC help event.");
-                    Check(errors == 0, "Console errors: " + errors);
-                    Write("PASS HTTP progression: area/reward once per region; crystal choice=2/solved=1; reload no duplicates; Console errors=0.");
-                    Write("PASS NPC and two optional puzzles. Backend unavailable; in-memory HTTP receiver, no database test.");
-                    RegionProgressController.ResetAdventure();
-                    Check(progress.CollectedSeedCount == 0 && !Find<KristalMagaraLevelController>().LightPathCompleted, "Session reset failed.");
-                    Write("PASS session reset. Android performance remains untested.");
-                    Cleanup(); Debug.Log("Three-region Play verification PASSED."); EditorApplication.isPlaying = false; break;
+                    if(!Walk())break;
+                    player.enabled=true;
+                    var firstBeacon=Beacon("1");
+                    Check(Find<KaranlikTepeLevelController>().TryActivate(firstBeacon),"First beacon failed.");
+                    Check(!Find<KaranlikTepeLevelController>().TryActivate(firstBeacon),"Duplicate beacon activation.");
+                    Check(!Find<KaranlikTepeLevelController>().TryActivate(Beacon("3")),"Remote activation allowed.");
+                    Check(!Find<KaranlikTepeLevelController>().LightPathCompleted,"Gate opened early.");
+                    phase=12; readyAt=EditorApplication.timeSinceStartup+1;break;
+                case 12:
+                    RegionSceneLoader.Load("KaranlikTepe");
+                    phase=13;readyAt=EditorApplication.timeSinceStartup+2;break;
+                case 13:
+                    Check(Beacon("1").IsLit && !Beacon("2").IsLit && !Beacon("3").IsLit,"Partial beacon state lost on reload.");
+                    Check(!Find<LightSeedCollectible>().gameObject.activeSelf,"Partial reload opened seed.");
+                    PrepareWalk(KaranlikTepeSceneBuilder.Route.Skip(1).Take(6).ToArray());
+                    phase=14;break;
+                case 14:
+                    if(!Walk())break;
+                    player.enabled=true;
+                    Check(Find<KaranlikTepeLevelController>().TryActivate(Beacon("2")),"Second beacon failed.");
+                    PrepareWalk(new[]{new Vector2(20,22)});phase=15;break;
+                case 15:
+                    if(!Walk())break;
+                    player.enabled=true;
+                    Check(Find<KaranlikTepeLevelController>().TryActivate(Beacon("3")),"Third beacon failed.");
+                    Check(Find<KaranlikTepeLevelController>().LightPathCompleted && Find<LightSeedCollectible>().gameObject.activeSelf,"Summit not unlocked.");
+                    Find<NpcDialogueUI>().OpenDialogue();Click(Find<NpcDialogueUI>(),"helpButton");
+                    Find<PuzzlePopupUI>().OpenPuzzle("memory_match");
+                    SolveMemory();
+                    phase=16;readyAt=EditorApplication.timeSinceStartup+1;break;
+                case 16:
+                    Find<PuzzlePopupUI>().OpenPuzzle("pattern_puzzle");Click(Find<PatternPuzzleUI>(),"blueButton");
+                    phase=17;readyAt=EditorApplication.timeSinceStartup+1;break;
+                case 17:
+                    Check(progress.CollectedSeedCount==3,"Optional content granted main seed.");
+                    PrepareWalk(KaranlikTepeSceneBuilder.Route.Skip(8).Take(2).ToArray());phase=18;break;
+                case 18:
+                    if(!Walk())break;
+                    if(progress.CollectedSeedCount<4)break;
+                    Check(progress.CollectedSeedCount==4 && progress.IsSeedCollected(3),"Fourth seed not collected.");
+                    Check(((Text)new SerializedObject(progress).FindProperty("seedCountText").objectReferenceValue).text=="Işık Tohumu: 4 / 4","HUD not 4/4.");
+                    Check(!progress.TryCollectLightSeed(3),"Fourth reward duplicated.");
+                    Check(!((Collider)new SerializedObject(Find<PortalTrigger>()).FindProperty("blockingCollider").objectReferenceValue).enabled,"Final portal blocked.");
+                    Write("PASS hill actual ramp/rock route, 3 beacon actions, partial reload, seed 4/4, NPC and optional Memory/Pattern.");
+                    phase=19;readyAt=EditorApplication.timeSinceStartup+1;break;
+                case 19:
+                    RegionSceneLoader.Load("KaranlikTepe");phase=20;readyAt=EditorApplication.timeSinceStartup+2;break;
+                case 20:
+                    Check(Find<KaranlikTepeLevelController>().LightPathCompleted && !Find<LightSeedCollectible>().gameObject.activeSelf,"Completed hill reload failed.");
+                    // The first visit physically traversed the gate; replay the route to the real final trigger.
+                    PrepareWalk(KaranlikTepeSceneBuilder.Route.Skip(1).ToArray());phase=21;break;
+                case 21:
+                    if(SceneManager.GetActiveScene().name=="LumoraFinal")
+                    {phase=22;readyAt=EditorApplication.timeSinceStartup+20;break;}
+                    if(player!=null && player.gameObject.scene.name=="KaranlikTepe")Walk();
+                    break;
+                case 22:
+                    progress=Find<RegionProgressController>();
+                    Check(progress.CollectedSeedCount==4 && Find<LumoraFinalController>().SequenceCompleted,"Final did not validate/animate four seeds.");
+                    var finalState = new SerializedObject(Find<LumoraFinalController>());
+                    var finalSeeds = finalState.FindProperty("symbolicSeeds");
+                    for (int i=0;i<4;i++) Check(((GameObject)finalSeeds.GetArrayElementAtIndex(i).objectReferenceValue).activeSelf,"Final symbolic seed hidden.");
+                    var crown = (Renderer)finalState.FindProperty("treeCanopy").GetArrayElementAtIndex(0).objectReferenceValue;
+                    var colorBlock = new MaterialPropertyBlock(); crown.GetPropertyBlock(colorBlock);
+                    Check(colorBlock.GetColor("_EmissionColor").g > .5f,"Tree did not brighten.");
+                    Check(((Text)finalState.FindProperty("title").objectReferenceValue).text=="Lumora Yeniden Parlıyor!","Final title missing.");
+                    Check(SelectedCharacterState.SelectedCharacter=="male","Character lost in finale.");
+                    Check(Find<MainMenuUI>()==null && Find<IntroVideoUI>()==null && Find<StoryIntroUI>()==null,"Opening UI repeated in finale.");
+                    foreach(Type type in new[]{typeof(PlayerController),typeof(Camera),typeof(AudioListener),typeof(UnityEngine.EventSystems.EventSystem),typeof(GameEventSender),typeof(RegionProgressController)})
+                        Check(UnityEngine.Object.FindObjectsByType(type,FindObjectsInactive.Include,FindObjectsSortMode.None).Length==1,"Duplicate "+type.Name);
+                    foreach(string region in new[]{"isikli_vadi","sisli_orman","kristal_magara","karanlik_tepe"})
+                        foreach(string eventType in new[]{"area_explored","reward_collected"})
+                            Check(EventCount(region,"region_progress",eventType)==1,"Progression event duplicate/missing: "+region+"/"+eventType);
+                    Check(EventCount("kristal_magara","crystal_light","choice_made")==2 && EventCount("kristal_magara","crystal_light","puzzle_solved")==1,"Crystal event count.");
+                    Check(EventCount("karanlik_tepe","light_beacon","choice_made")==3 && EventCount("karanlik_tepe","light_beacon","puzzle_solved")==1,"Beacon event count.");
+                    Check(EventCount("karanlik_tepe","memory_match","puzzle_solved")==1 && EventCount("karanlik_tepe","pattern_puzzle","puzzle_solved")==1,"Optional events missing.");
+                    Check(EventCount("karanlik_tepe","npc_dialogue","npc_helped")==1,"NPC event missing.");
+                    Write("PASS final scene, 4 symbolic seeds, tree lighting, completed UI, retained character, unique components.");
+                    Write("PASS real HTTP payloads: area/reward once in all 4 regions; crystal choices=2/solve=1; beacon choices=3/solve=1; reload no duplicates.");
+                    Click(Find<LumoraFinalController>(),"returnButton");phase=23;readyAt=EditorApplication.timeSinceStartup+3;break;
+                case 23:
+                    Check(SceneManager.GetActiveScene().name=="IsikliVadi" && Find<MainMenuUI>()!=null,"Return to menu failed.");
+                    progress=Find<RegionProgressController>();
+                    Check(progress.CollectedSeedCount==0 && !progress.HasStarted,"Reset did not clear seeds/start.");
+                    Check(!progress.IsMechanicCompleted("kristal_magara/crystal_light") && !progress.IsMechanicCompleted(KaranlikTepeLevelController.MechanicKey),"Mechanics not reset.");
+                    Check(!progress.IsMechanicCompleted("karanlik_tepe/beacon/1"),"Individual beacon not reset.");
+                    RegionSceneLoader.Load("LumoraFinal");phase=24;readyAt=EditorApplication.timeSinceStartup+2;break;
+                case 24:
+                    Check(!Find<LumoraFinalController>().SequenceCompleted,"Direct final falsely completed game.");
+                    Check(((Text)new SerializedObject(Find<LumoraFinalController>()).FindProperty("title").objectReferenceValue).text=="Macera seni bekliyor","Direct final fallback missing.");
+                    Click(Find<LumoraFinalController>(),"returnButton");phase=25;readyAt=EditorApplication.timeSinceStartup+2;break;
+                case 25:
+                    Click(Find<MainMenuUI>(),"startButton");
+                    Check(Find<CharacterSelectionUI>().gameObject.activeSelf,"New game skipped character selection.");
+                    Click(Find<CharacterSelectionUI>(),"femaleButton");phase=26;readyAt=EditorApplication.timeSinceStartup+3;break;
+                case 26:
+                    Click(Find<IntroVideoUI>(),"skipButton");Click(Find<StoryIntroUI>(),"startButton");
+                    Check(Find<RegionProgressController>().CollectedSeedCount==0 && Find<RegionProgressController>().HasStarted,"New game did not start at 0/4.");
+                    phase=27;readyAt=EditorApplication.timeSinceStartup+1;break;
+                case 27:
+                    Check(EventCount("isikli_vadi","region_progress","area_explored")==2,"New game did not reset exploration flag.");
+                    Check(SelectedCharacterState.SelectedCharacter=="female","New character selection failed.");
+                    Check(errors==0,"Console errors="+errors);
+                    Write("PASS final return, session/beacon/crystal/exploration reset, fresh female selection, direct-final safe fallback. Console errors=0.");
+                    Write("Local HTTP receiver used; PostgreSQL and Android device performance not verified.");
+                    Cleanup();Debug.Log("Full adventure verification PASSED.");EditorApplication.isPlaying=false;break;
             }
         }
         catch (Exception error)
         {
             Write("FAIL " + error); Cleanup(); Debug.LogError(error); EditorApplication.isPlaying = false;
         }
+    }
+
+    private static LightBeacon Beacon(string id) => UnityEngine.Object.FindObjectsByType<LightBeacon>(FindObjectsSortMode.None).Single(b=>b.name=="LightBeacon_"+id);
+    private static int EventCount(string region,string puzzle,string type) => requests.Count(x=>x.Contains("\"region\":\""+region+"\"") && x.Contains("\"puzzleType\":\""+puzzle+"\"") && x.Contains("\"eventType\":\""+type+"\""));
+    private static void SolveMemory()
+    {
+        var memory=Find<MemoryMatchPuzzleUI>();
+        var symbols=(string[])typeof(MemoryMatchPuzzleUI).GetField("cardSymbols",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).GetValue(memory);
+        var cards=new SerializedObject(memory).FindProperty("cardButtons");
+        foreach(string symbol in symbols.Distinct())
+            foreach(int i in Enumerable.Range(0,4).Where(i=>symbols[i]==symbol))
+                ((Button)cards.GetArrayElementAtIndex(i).objectReferenceValue).onClick.Invoke();
     }
 
     private static async Task Receive(TcpListener listener)

@@ -3,5 +3,5 @@ PASS male video frames=239; no early exploration.
 PASS CharacterController physically traversed meadow, ramps, bridge and grove; ticks=706
 PASS story, single progression owner, optional puzzles, portal lock/unlock/fallback.
 PASS real HTTP payloads received locally: 15; area=1 reward=1; NPC/puzzle events present.
-PASS female frames=92, skip, Console errors=0.
+PASS female frames=93, skip, Console errors=0.
 PASS integration. Physical traversal and device performance require manual testing.

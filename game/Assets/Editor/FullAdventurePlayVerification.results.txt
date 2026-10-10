@@ -1,0 +1,11 @@
+Full adventure integration / Unity 6000.3.14f1
+PASS five enabled build scenes; IsikliVadi is startup scene.
+PASS actual valley walk, seed trigger, portal scene load, seed 1/4 and single manager; no second intro.
+PASS actual Forest -> Cave scene transition, seed 2/4, character, unique player/camera/listener/EventSystem/sender.
+PASS cave bends, slope, stepping stones; two near-player rotations, cooldown, gate and seed activation.
+PASS seed 3/4 and crystal gate; first three regions retain progression.
+PASS hill actual ramp/rock route, 3 beacon actions, partial reload, seed 4/4, NPC and optional Memory/Pattern.
+PASS final scene, 4 symbolic seeds, tree lighting, completed UI, retained character, unique components.
+PASS real HTTP payloads: area/reward once in all 4 regions; crystal choices=2/solve=1; beacon choices=3/solve=1; reload no duplicates.
+PASS final return, session/beacon/crystal/exploration reset, fresh female selection, direct-final safe fallback. Console errors=0.
+Local HTTP receiver used; PostgreSQL and Android device performance not verified.
